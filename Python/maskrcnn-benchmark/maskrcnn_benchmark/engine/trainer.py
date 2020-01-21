@@ -86,14 +86,15 @@ def do_train(
 
         # Display annotations
         image = images.tensors[0].cpu().numpy()
-       # print(image)
+        print(image)
         means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
         means[0] = 102.9801
         means[1] = 115.9465
         means[2] = 122.7717
         image1 = image + means
-        #print(image)
-        #exit()
+        print('NEW IMAGE:')
+        print(image1)
+        exit()
         #for b in range(len(targets[0].bbox)):
         #    box = targets[0].bbox[b]
         #    cv2.rectangle(image, (box[1], box[0]) ,(box[3], box[2]), (0,0,0), 16)

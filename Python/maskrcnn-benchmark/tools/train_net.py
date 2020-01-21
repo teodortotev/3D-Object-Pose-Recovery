@@ -134,7 +134,7 @@ def run_test(cfg, model, distributed):
 
 
 def main():
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/12_39_20_01_20')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/10_51_21_01_20')
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
