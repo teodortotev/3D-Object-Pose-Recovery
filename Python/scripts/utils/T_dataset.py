@@ -52,6 +52,7 @@ class T_dataset(Dataset):
     def get_train_item(self, index):
         image = self.read_image(self.images[index])
         mask = self.read_mask(self.masks[index])
+        size = image.size
 
         # Apply transforms for training data
         if self.img_transforms:
@@ -61,11 +62,12 @@ class T_dataset(Dataset):
             mask = self.msk_transforms(mask)
             mask = np.array(mask)
 
-        return torch.as_tensor(image), torch.as_tensor(mask), torch.as_tensor(index), self.images[index], self.masks[index]
+        return torch.as_tensor(image), torch.as_tensor(mask), torch.as_tensor(index), self.images[index], self.masks[index], size
 
     def get_val_item(self, index):
         image = self.read_image(self.images[index])
         mask = self.read_mask(self.masks[index])
+        size = image.size
 
         # Apply transforms for testing data
         if self.img_transforms:
@@ -75,7 +77,7 @@ class T_dataset(Dataset):
             mask = self.msk_transforms(mask)
             mask = np.array(mask)
 
-        return torch.as_tensor(image), torch.as_tensor(mask), torch.as_tensor(index), self.images[index], self.masks[index]
+        return torch.as_tensor(image), torch.as_tensor(mask), torch.as_tensor(index), self.images[index], self.masks[index], size
 
     def __getitem__(self, index):
         if self.split is 'train':

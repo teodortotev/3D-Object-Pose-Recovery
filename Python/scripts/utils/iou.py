@@ -13,7 +13,7 @@ def iou(pred, label, n_classes):
         intersection = (pred_inds[target_inds]).long().sum().data.cpu().item()  # Cast to long to prevent overflows
         union = pred_inds.long().sum().data.cpu().item() + target_inds.long().sum().data.cpu().item() - intersection
         if union == 0:
-            ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
+            ious.append(float(1))  # If there is no ground truth, do not include in evaluation
         else:
             ious.append(float(intersection) / float(max(union, 1)))
 

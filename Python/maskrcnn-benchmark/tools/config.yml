@@ -1,14 +1,14 @@
 AMP_VERBOSE: false
 DATALOADER:
   ASPECT_RATIO_GROUPING: true
-  NUM_WORKERS: 0
+  NUM_WORKERS: 4
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - pasc3d_coco_test
+  - pasc3d_coco_test_obj
   TRAIN:
-  - pasc3d_coco_train
-  - pasc3d_coco_val
+  - pasc3d_coco_train_obj
+  - pasc3d_coco_train_obj
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0
@@ -64,12 +64,12 @@ MODEL:
     EPSILON: 1.0e-05
     NUM_GROUPS: 32
   KEYPOINT_ON: false
-  MASK_ON: true
+  MASK_ON: false
   META_ARCHITECTURE: GeneralizedRCNN
   RESNETS:
     BACKBONE_OUT_CHANNELS: 256
     DEFORMABLE_GROUPS: 1
-    NUM_GROUPS: 1
+    NUM_GROUPS: 32
     RES2_OUT_CHANNELS: 256
     RES5_DILATION: 1
     STAGE_WITH_DCN:
@@ -79,12 +79,12 @@ MODEL:
     - false
     STEM_FUNC: StemWithFixedBatchNorm
     STEM_OUT_CHANNELS: 64
-    STRIDE_IN_1X1: true
+    STRIDE_IN_1X1: false
     TRANS_FUNC: BottleneckWithFixedBatchNorm
-    WIDTH_PER_GROUP: 64
+    WIDTH_PER_GROUP: 8
     WITH_MODULATED_DCN: false
   RETINANET:
-    ANCHOR_SIZES: &id001
+    ANCHOR_SIZES: &id002
     - 32
     - 64
     - 128
@@ -96,7 +96,7 @@ MODEL:
     - 32
     - 64
     - 128
-    ASPECT_RATIOS: &id002
+    ASPECT_RATIOS: &id003
     - 0.5
     - 1.0
     - 2.0
@@ -162,7 +162,7 @@ MODEL:
     NUM_CLASSES: 17
     POOLER_RESOLUTION: 14
     POOLER_SAMPLING_RATIO: 0
-    POOLER_SCALES:
+    POOLER_SCALES: &id001
     - 0.0625
     PREDICTOR: KeypointRCNNPredictor
     RESOLUTION: 14
@@ -174,30 +174,26 @@ MODEL:
     - 256
     - 256
     DILATION: 1
-    FEATURE_EXTRACTOR: MaskRCNNFPNFeatureExtractor
+    FEATURE_EXTRACTOR: ResNet50Conv5ROIFeatureExtractor
     MLP_HEAD_DIM: 1024
     POOLER_RESOLUTION: 14
-    POOLER_SAMPLING_RATIO: 2
-    POOLER_SCALES:
-    - 0.25
-    - 0.125
-    - 0.0625
-    - 0.03125
+    POOLER_SAMPLING_RATIO: 0
+    POOLER_SCALES: *id001
     POSTPROCESS_MASKS: false
     POSTPROCESS_MASKS_THRESHOLD: 0.5
     PREDICTOR: MaskRCNNC4Predictor
-    RESOLUTION: 28
-    SHARE_BOX_FEATURE_EXTRACTOR: false
+    RESOLUTION: 14
+    SHARE_BOX_FEATURE_EXTRACTOR: true
     USE_GN: false
   RPN:
-    ANCHOR_SIZES: *id001
+    ANCHOR_SIZES: *id002
     ANCHOR_STRIDE:
     - 4
     - 8
     - 16
     - 32
     - 64
-    ASPECT_RATIOS: *id002
+    ASPECT_RATIOS: *id003
     BATCH_SIZE_PER_IMAGE: 256
     BG_IOU_THRESHOLD: 0.3
     FG_IOU_THRESHOLD: 0.7
@@ -215,26 +211,25 @@ MODEL:
     STRADDLE_THRESH: 0
     USE_FPN: true
   RPN_ONLY: false
-  WEIGHT: catalog://ImageNetPretrained/MSRA/R-101
+  WEIGHT: catalog://ImageNetPretrained/FAIR/20171220/X-101-32x8d
 OUTPUT_DIR: .
 PATHS_CATALOG: /media/root/storage/teo/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/maskrcnn_benchmark/config/paths_catalog.py
 SOLVER:
-  BASE_LR: 0.0025
+  BASE_LR: 7.0e-05
   BIAS_LR_FACTOR: 2
   CHECKPOINT_PERIOD: 2500
   GAMMA: 0.1
   IMS_PER_BATCH: 1
-  MAX_ITER: 10000
+  MAX_ITER: 180000
   MOMENTUM: 0.9
   STEPS:
-  - 0
-  - 3000
-  - 9000
+  - 120000
+  - 160000
   TEST_PERIOD: 0
   WARMUP_FACTOR: 0.3333333333333333
   WARMUP_ITERS: 500
   WARMUP_METHOD: linear
-  WEIGHT_DECAY: 1.0e-05
+  WEIGHT_DECAY: 1.0e-07
   WEIGHT_DECAY_BIAS: 0
 TEST:
   BBOX_AUG:

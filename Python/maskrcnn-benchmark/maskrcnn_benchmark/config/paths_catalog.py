@@ -104,6 +104,18 @@ class DatasetCatalog(object):
             "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
             "ann_file": "/home/teo/storage/Data/Annotations/car_combined/test/annotations.json"
         },
+        "pasc3d_coco_train_obj": {
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/train_anno.json"
+        },
+        "pasc3d_coco_val_obj": {
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/val_anno.json"
+        },
+        "pasc3d_coco_test_obj": {
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/test_anno.json"
+        },
 
         ##############################################
         # These ones are deprecated, should be removed

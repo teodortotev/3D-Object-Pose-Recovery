@@ -22,7 +22,7 @@ import torchvision.utils as vutils
 # ___contact__: tedi.totev97@gmail.com
 
 # Define a logger
-writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3_22_15_20_01_20')
+writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3_23_01_20_18_53_pascal')
 
 
 def initialize_model(model_name, num_classes):
@@ -87,10 +87,10 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
             stor_prd = torch.zeros((tot_batches, args.batch_size, args.size, args.size))
 
             # Iterate over data by getting batches
-            for iter, (inputs, labels, indices, im_names, msk_names) in enumerate(dataloaders[phase]):
+            for iter, (inputs, labels, indices, im_names, msk_names, sizes) in enumerate(dataloaders[phase]):
                 inputs = inputs.to(args.device, dtype=torch.float)
                 labels = labels.to(args.device)
-
+                
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -146,7 +146,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
             # Deep copy the model if the best
             if phase == 'val' and IOU > best_acc:
                 best_acc = IOU
-                torch.save(model, final_model_file + '_' + str(best_acc) + '_imagenet_' + str(args.size))
+                torch.save(model, final_model_file + '_' + str(best_acc) + '_pascal_' + str(args.size))
             if phase == 'val':
                 val_acc_history.append(IOU)
 
@@ -242,14 +242,14 @@ if __name__ == '__main__':
     # Define parser for input arguments
     parser = argparse.ArgumentParser(description='Train a segmentation network with PyTorch')
     parser.add_argument('--load',       '-l', type=int, default=0)
-    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_imagenet')
-    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks/car_imagenet')
-    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_imagenet')
+    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_pascal')
+    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks/car_pascal')
+    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_pascal')
     parser.add_argument('--size',       '-s' ,type=int, default=128)
     parser.add_argument('--num_classes','-nc',type=int, default=9)
     parser.add_argument('--model_name', '-mn',type=str, default='DeepLab101')
     parser.add_argument('--batch_size', '-b', type=int, default=32)
-    parser.add_argument('--epochs',     '-e', type=int, default=500)
+    parser.add_argument('--epochs',     '-e', type=int, default=150)
     parser.add_argument('--device',      '-d',type=str, default='cuda:2')
     parser.add_argument('--num_workers', '-j',type=int, default=8)
     parser.add_argument('--lr_start', '-lr',type=int, default=0.0007)

@@ -5,6 +5,7 @@ import os
 import time
 import cv2
 import numpy as np
+import skimage
 
 import torch
 import torch.distributed as dist
@@ -16,6 +17,11 @@ from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.engine.inference import inference
 
 from apex import amp
+
+def rectangle_perimeter(x1, y1, width, height, shape=None, clip=False):
+    rr, cc = [x1, x1 + width, x1 + width, x1], [y1, y1, y1 + height, y1 + height]
+
+    return skimage.draw.polygon_perimeter(rr, cc, shape=shape, clip=clip)
 
 def reduce_loss_dict(loss_dict):
     """
@@ -84,25 +90,27 @@ def do_train(
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
-        # Display annotations
+        # # Display annotations
         image = images.tensors[0].cpu().numpy()
-        print(image)
         means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
         means[0] = 102.9801
         means[1] = 115.9465
         means[2] = 122.7717
         image1 = image + means
-        print('NEW IMAGE:')
-        print(image1)
-        exit()
-        #for b in range(len(targets[0].bbox)):
-        #    box = targets[0].bbox[b]
-        #    cv2.rectangle(image, (box[1], box[0]) ,(box[3], box[2]), (0,0,0), 16)
-        image = torch.tensor(image)
+        image1 = image1[[2, 1, 0]].astype(np.uint8)
 
-        writer.add_image('im_in_new', image, iteration)
-        writer.add_image('im_in', image1, iteration)
-        #writer.add_image('tar_in',targets.tensors.squeeze(), iteration)
+        for b in range(len(targets[0].bbox)):
+            box = targets[0].bbox[b]
+            x1 = np.around(box[0].cpu().numpy())
+            y1 = np.around(box[1].cpu().numpy())
+            x2 = np.around(box[2].cpu().numpy())
+            y2 = np.around(box[3].cpu().numpy())
+            rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
+            image1[:, rr, cc] = 255
+
+        writer.add_image('im_in_new', image1, iteration)
+        writer.add_image('im_in', image, iteration)
+        # writer.add_image('tar_in',targets.tensors.squeeze(), iteration)
 
         loss_dict = model(images, targets)
 
@@ -128,11 +136,9 @@ def do_train(
         writer.add_scalar('loss', meters.loss.median, iteration)
         writer.add_scalar('loss_classifier', meters.loss_classifier.median, iteration)
         writer.add_scalar('loss_box_reg', meters.loss_box_reg.median, iteration)
-        writer.add_scalar('loss_mask', meters.loss_mask.median, iteration)
         writer.add_scalar('loss_objectness', meters.loss_objectness.median, iteration)
         writer.add_scalar('loss_rpn_box_reg', meters.loss_rpn_box_reg.median, iteration)
         writer.add_scalar('lr', optimizer.param_groups[0]["lr"], iteration)
-        
 
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))

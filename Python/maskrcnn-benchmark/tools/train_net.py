@@ -63,9 +63,8 @@ def train(cfg, local_rank, distributed, writer):
     checkpointer = DetectronCheckpointer(
         cfg, model, optimizer, scheduler, output_dir, save_to_disk
     )
-    #MAH put back
-    #extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
-    #arguments.update(extra_checkpoint_data)
+    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
+    arguments.update(extra_checkpoint_data)
 
     data_loader = make_data_loader(
         cfg,
@@ -134,12 +133,12 @@ def run_test(cfg, model, distributed):
 
 
 def main():
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/10_51_21_01_20')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/22_01_20_15_58')
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_mask_rcnn_R_101_FPN_1x_modif.yaml",
+        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_X_101_32x8d_FPN_1x_modif.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
