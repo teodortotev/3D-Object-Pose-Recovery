@@ -110,9 +110,9 @@ def main():
             stor_lbl[iter, 0:n_batches, :, :] = labels.long()
             stor_prd[iter, 0:n_batches, :, :] = preds.long()
 
-            # Resize images and compute batch IoU
+            # Resize images, compute batch IoU and display
             batch_ious.append(iou(preds.long(), labels.long(), args.num_classes))
-            resized_batch_ious.append(resized_iou(preds.long(), labels.long(), args.num_classes, sizes))
+            resized_batch_ious.append(resized_iou(preds.long(), labels.long(), args.num_classes, sizes, writer))
 
             #save_predictions(preds, indices, args.pred_dir, test_dataset)
 

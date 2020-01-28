@@ -99,7 +99,7 @@ def train(cfg, local_rank, distributed, writer):
     return model
 
 
-def run_test(cfg, model, distributed):
+def run_test(cfg, model, distributed, writer):
     if distributed:
         model = model.module
     torch.cuda.empty_cache()  # TODO check if it helps
@@ -121,6 +121,7 @@ def run_test(cfg, model, distributed):
             model,
             data_loader_val,
             dataset_name=dataset_name,
+            writer=writer,
             iou_types=iou_types,
             box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
             bbox_aug=cfg.TEST.BBOX_AUG.ENABLED,
@@ -133,7 +134,7 @@ def run_test(cfg, model, distributed):
 
 
 def main():
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/22_01_20_15_58')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/27_01_20_16_28')
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
@@ -198,7 +199,7 @@ def main():
     model = train(cfg, args.local_rank, args.distributed, writer)
 
     if not args.skip_test:
-        run_test(cfg, model, args.distributed)
+        run_test(cfg, model, args.distributed, writer)
 
 
 if __name__ == "__main__":

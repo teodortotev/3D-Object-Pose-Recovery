@@ -110,7 +110,6 @@ def do_train(
 
         writer.add_image('im_in_new', image1, iteration)
         writer.add_image('im_in', image, iteration)
-        # writer.add_image('tar_in',targets.tensors.squeeze(), iteration)
 
         loss_dict = model(images, targets)
 
