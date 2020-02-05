@@ -5,15 +5,19 @@ import os
 from copy import deepcopy
 
 class DatasetCatalog(object):
-    DATA_DIR = "datasets"
+    DATA_DIR = ""
     DATASETS = {
         "coco_2017_train": {
-            "img_dir": "coco/train2017",
-            "ann_file": "coco/annotations/instances_train2017.json"
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/train_anno.json"
         },
         "coco_2017_val": {
-            "img_dir": "coco/val2017",
-            "ann_file": "coco/annotations/instances_val2017.json"
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/val_anno.json"
+        },
+        "coco_2017_test": {
+            "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/test_anno.json"
         },
         "coco_2014_train": {
             "img_dir": "coco/train2014",
@@ -91,30 +95,6 @@ class DatasetCatalog(object):
             "data_dir": "voc/VOC2012",
             "split": "test"
             # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
-        },
-        "pasc3d_coco_train": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/train/annotations.json"
-        },
-        "pasc3d_coco_val": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/val/annotations.json"
-        },
-        "pasc3d_coco_test": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/test/annotations.json"
-        },
-        "pasc3d_coco_train_obj": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/train_anno.json"
-        },
-        "pasc3d_coco_val_obj": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/val_anno.json"
-        },
-        "pasc3d_coco_test_obj": {
-            "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/test_anno.json"
         },
 
         ##############################################

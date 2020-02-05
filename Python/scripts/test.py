@@ -17,32 +17,78 @@ import torchvision.utils as vutils
 # ___author___: Teodor Totev
 # ___contact__: tedi.totev97@gmail.com
 
-def resized_iou(preds, labels, n_classes, sizes):
+def add_colours(mask, w, h):
+    pix = np.zeros((3, w, h))
+    colors = np.array([[0.954174456379543, 0.590608652919636, 0.281507695118553],
+                       [0.0319226295039784, 0.660437966312602, 0.731050829723742],
+                       [0.356868986182542, 0.0475546731138661, 0.137762892519516],
+                       [0.662653834287215, 0.348784808510059, 0.836722781749718],
+                       [0.281501559148491, 0.451340580355743, 0.138601715742360],
+                       [0.230383067317464, 0.240904997120111, 0.588209385389494],
+                       [0.711128551180325, 0.715045013296177, 0.366156800454938],
+                       [0.624572916993309, 0.856182292006288, 0.806759544661106]])
+    for label in range(1,9):
+        for i in range(w):
+            for j in range(h):
+                if mask[i,j] == label:
+                    pix[:, i, j] = colors[label-1, :]
+
+    return pix
+
+def resized_iou(inputs, preds, labels, n_classes, sizes, writer):
     ious = []
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
     for i in range(len(preds)):
-        p = tf.ToPILImage()(preds[i].cpu().numpy().astype(np.uint8))
-        l = tf.ToPILImage()(labels[i].cpu().numpy().astype(np.uint8))
-        p = tf.Resize(size=(sizes[0][i].tolist(), sizes[1][i].tolist()), interpolation=Image.NEAREST)(p)
-        l = tf.Resize(size=(sizes[0][i].tolist(), sizes[1][i].tolist()), interpolation=Image.NEAREST)(l)
+
+        # Resize masks
+        p = preds[i].cpu().numpy().astype(np.uint8)
+        l = labels[i].cpu().numpy().astype(np.uint8)
+        p = tf.ToPILImage()(p)
+        l = tf.ToPILImage()(l)
+        p = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.NEAREST)(p)
+        l = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.NEAREST)(l)
         p = np.array(p)
         l = np.array(l)
-        p = torch.as_tensor(p)
-        l = torch.as_tensor(l)
-        ious.append(iou(p, l, n_classes))
-    
+        p_color = add_colours(p, sizes[1][i].tolist(), sizes[0][i].tolist())
+        p_color = torch.as_tensor(p_color)
+        l_color = add_colours(l, sizes[1][i].tolist(), sizes[0][i].tolist())
+        l_color = torch.as_tensor(l_color)
+        # p = torch.as_tensor(p)
+        # l = torch.as_tensor(l)
+
+        # # Calculate ious 
+        # ious.append(iou(p, l, n_classes))
+
+        # Unnormalize and Resize images
+        image = inputs[i].cpu().numpy()
+        image[0] = (image[0]*std[0] + mean[0])*255
+        image[1] = (image[1]*std[1] + mean[1])*255
+        image[2] = (image[2]*std[2] + mean[2])*255
+        image = image.astype(np.uint8)
+        image = np.transpose(image,(1,2,0))
+        image = Image.fromarray(image, mode='RGB')
+        image = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.BILINEAR)(image)
+        image = np.array(image)
+        image = np.transpose(image,(2,0,1))
+
+        # Display images and masks in the batch
+        writer.add_image('image', image, i)
+        writer.add_image('pred', p_color, i)
+        writer.add_image('target', l_color, i)
+           
+    exit()       
     return sum(ious)/len(preds)
-
-
 
 def main():
     since = time.time()  # Record start time
 
-    writer = SummaryWriter(comment='_testing')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3_29_01_20_13_38_test_pascal')
 
     print('-' * 50)
     print('| Loading model file %s...' % final_model_file)
 
-    model = torch.load(final_model_file)  # Get the model
+    model = torch.load(final_model_file, map_location='cuda:0')  # Get the model
     model.eval()  # Set the model to evaluation mode
 
     print('| Done!')
@@ -112,7 +158,7 @@ def main():
 
             # Resize images, compute batch IoU and display
             batch_ious.append(iou(preds.long(), labels.long(), args.num_classes))
-            resized_batch_ious.append(resized_iou(preds.long(), labels.long(), args.num_classes, sizes, writer))
+            resized_batch_ious.append(resized_iou(inputs, preds.long(), labels.long(), args.num_classes, sizes, writer))
 
             #save_predictions(preds, indices, args.pred_dir, test_dataset)
 
@@ -164,15 +210,15 @@ if __name__ == '__main__':
 
     # Parser for input arguments
     parser = argparse.ArgumentParser(description='Test a model with PyTorch')
-    parser.add_argument('--image_dir',  '-im',  type=str, default='/home/teo/storage/Data/Images/car_imagenet', help="Specify image directory")
-    parser.add_argument('--mask_dir',   '-ma',  type=str, default='/home/teo/storage/Data/Masks/car_imagenet',  help="Specify mask directory")
-    parser.add_argument('--model_dir',  '-md',  type=str, default='/home/teo/storage/Data/Models/car_imagenet', help='Specify model directory.')
-    parser.add_argument('--pred-dir',   '-pd',  type=str, default='/home/teo/storage/Data/Predictions/car_imagenet', help='Specify prediction directory')
+    parser.add_argument('--image_dir',  '-im',  type=str, default='/home/teo/storage/Data/Images/car_pascal', help="Specify image directory")
+    parser.add_argument('--mask_dir',   '-ma',  type=str, default='/home/teo/storage/Data/Masks/car_pascal',  help="Specify mask directory")
+    parser.add_argument('--model_dir',  '-md',  type=str, default='/home/teo/storage/Data/Models/car_pascal', help='Specify model directory.')
+    parser.add_argument('--pred-dir',   '-pd',  type=str, default='/home/teo/storage/Data/Predictions/car_pascal', help='Specify prediction directory')
     parser.add_argument('--size',        '-s',  type=int, default='128',   help='Specify image resize.')
-    parser.add_argument('--model',      '-m',   type=str, default='final_0.6880962872804797_imagenet_128',  help='Specify the model type to test. Default: ResNet')
+    parser.add_argument('--model',      '-m',   type=str, default='final_0.26573397718108394_comb_128',  help='Specify the model type to test. Default: ResNet')
     parser.add_argument('--model_name', '-mn',  type=str, default='DeepLab101',  help='Specify the exact model name to test. Default: final_0.931575')
     parser.add_argument('--batch_size', '-b',   type=int, default=32,         help='Specify the batch size. Default: 16')
-    parser.add_argument('--device',     '-d',   type=str, default='cuda:1',  help='Specify the device to be used. Default: cuda:0')
+    parser.add_argument('--device',     '-d',   type=str, default='cuda:0',  help='Specify the device to be used. Default: cuda:0')
     parser.add_argument('--num_classes', '-nc', type=int, default=9)
     parser.add_argument('--num_workers', '-j',  type=int, default=8,         help='Specify the number of processes to load data. Default: 8')
     args = parser.parse_args()

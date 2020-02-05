@@ -1,5 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-"""
+r"""
 Basic training script for PyTorch
 """
 
@@ -24,7 +24,6 @@ from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
-from tensorboardX import SummaryWriter
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -34,7 +33,7 @@ except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
-def train(cfg, local_rank, distributed, writer):
+def train(cfg, local_rank, distributed):
     model = build_detection_model(cfg)
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
@@ -93,13 +92,12 @@ def train(cfg, local_rank, distributed, writer):
         checkpoint_period,
         test_period,
         arguments,
-        writer,
     )
 
     return model
 
 
-def run_test(cfg, model, distributed, writer):
+def run_test(cfg, model, distributed):
     if distributed:
         model = model.module
     torch.cuda.empty_cache()  # TODO check if it helps
@@ -121,7 +119,6 @@ def run_test(cfg, model, distributed, writer):
             model,
             data_loader_val,
             dataset_name=dataset_name,
-            writer=writer,
             iou_types=iou_types,
             box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
             bbox_aug=cfg.TEST.BBOX_AUG.ENABLED,
@@ -134,12 +131,10 @@ def run_test(cfg, model, distributed, writer):
 
 
 def main():
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/27_01_20_16_28')
-
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_X_101_32x8d_FPN_1x_modif.yaml",
+        default="",
         metavar="FILE",
         help="path to config file",
         type=str,
@@ -196,10 +191,10 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, args.local_rank, args.distributed, writer)
+    model = train(cfg, args.local_rank, args.distributed)
 
     if not args.skip_test:
-        run_test(cfg, model, args.distributed, writer)
+        run_test(cfg, model, args.distributed)
 
 
 if __name__ == "__main__":

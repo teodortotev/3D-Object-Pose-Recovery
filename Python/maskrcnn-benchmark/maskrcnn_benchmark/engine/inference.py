@@ -5,8 +5,6 @@ import os
 
 import torch
 from tqdm import tqdm
-import numpy as np
-import skimage
 
 from maskrcnn_benchmark.data.datasets.evaluation import evaluate
 from ..utils.comm import is_main_process, get_world_size
@@ -15,16 +13,12 @@ from ..utils.comm import synchronize
 from ..utils.timer import Timer, get_time_str
 from .bbox_aug import im_detect_bbox_aug
 
-def rectangle_perimeter(x1, y1, width, height, shape=None, clip=False):
-    rr, cc = [x1, x1 + width, x1 + width, x1], [y1, y1, y1 + height, y1 + height]
 
-    return skimage.draw.polygon_perimeter(rr, cc, shape=shape, clip=clip)
-
-def compute_on_dataset(model, data_loader, device, bbox_aug, writer, timer=None):
+def compute_on_dataset(model, data_loader, device, bbox_aug, timer=None):
     model.eval()
     results_dict = {}
     cpu_device = torch.device("cpu")
-    for iteration, batch in enumerate(tqdm(data_loader)):
+    for _, batch in enumerate(tqdm(data_loader)):
         images, targets, image_ids = batch
         with torch.no_grad():
             if timer:
@@ -33,42 +27,6 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, writer, timer=None)
                 output = im_detect_bbox_aug(model, images, device)
             else:
                 output = model(images.to(device))
-
-                # Display predictions
-                image = images.tensors[0].cpu().numpy()
-                means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
-                means[0] = 102.9801
-                means[1] = 115.9465
-                means[2] = 122.7717
-                image1 = image + means
-                image1 = image1[[2, 1, 0]].astype(np.uint8)
-                image2 = image1
-
-                for b in range(len(targets[0].bbox)):
-                    box = targets[0].bbox[b]
-                    x1 = np.around(box[0].cpu().numpy())
-                    y1 = np.around(box[1].cpu().numpy())
-                    x2 = np.around(box[2].cpu().numpy())
-                    y2 = np.around(box[3].cpu().numpy())
-                    rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
-                    image1[:, rr, cc] = 255
-
-                writer.add_image('im_in_target', image1, iteration)
-
-                for b in range(len(output[0].bbox)):
-                    box = output[0].bbox[b]
-                    x1 = np.around(box[0].cpu().numpy())
-                    y1 = np.around(box[1].cpu().numpy())
-                    x2 = np.around(box[2].cpu().numpy())
-                    y2 = np.around(box[3].cpu().numpy())
-                    rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
-                    image2[:, rr, cc] = 255
-                
-                writer.add_image('im_in_pred', image2, iteration)
-
-                writer.add_image('im_in', image, iteration)
-
-                # print(images.tensors[0].cpu().numpy())
             if timer:
                 if not device.type == 'cpu':
                     torch.cuda.synchronize()
@@ -77,7 +35,6 @@ def compute_on_dataset(model, data_loader, device, bbox_aug, writer, timer=None)
         results_dict.update(
             {img_id: result for img_id, result in zip(image_ids, output)}
         )
-        break
     return results_dict
 
 
@@ -107,7 +64,6 @@ def inference(
         model,
         data_loader,
         dataset_name,
-        writer,
         iou_types=("bbox",),
         box_only=False,
         bbox_aug=False,
@@ -125,9 +81,7 @@ def inference(
     total_timer = Timer()
     inference_timer = Timer()
     total_timer.tic()
-    predictions = compute_on_dataset(model, data_loader, device, bbox_aug, writer, inference_timer)
-    print(predictions[0].__dict__)
-    exit()
+    predictions = compute_on_dataset(model, data_loader, device, bbox_aug, inference_timer)
     # wait for all processes to complete before measuring the time
     synchronize()
     total_time = total_timer.toc()

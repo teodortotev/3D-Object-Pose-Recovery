@@ -22,7 +22,7 @@ import torchvision.utils as vutils
 # ___contact__: tedi.totev97@gmail.com
 
 # Define a logger
-writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3_23_01_20_18_53_pascal')
+writer = SummaryWriter(logdir='/home/teo/storage/Code/name/candelete')
 
 
 def initialize_model(model_name, num_classes):
@@ -36,6 +36,8 @@ def initialize_model(model_name, num_classes):
         if model_name == 'DeepLab101':
             model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, progress=True, num_classes=num_classes, aux_loss=None)
 
+        print(model)
+        exit()
         pretrained_state_dict = torch.load("/home/teo/storage/Data/pretrained_weight_DeepLab101")
         model.load_state_dict(pretrained_state_dict, strict=False)
 
@@ -250,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_name', '-mn',type=str, default='DeepLab101')
     parser.add_argument('--batch_size', '-b', type=int, default=32)
     parser.add_argument('--epochs',     '-e', type=int, default=150)
-    parser.add_argument('--device',      '-d',type=str, default='cuda:2')
+    parser.add_argument('--device',      '-d',type=str, default='cuda:0')
     parser.add_argument('--num_workers', '-j',type=int, default=8)
     parser.add_argument('--lr_start', '-lr',type=int, default=0.0007)
     parser.add_argument('--lr_power', '-lrp',type=float, default=0.9)

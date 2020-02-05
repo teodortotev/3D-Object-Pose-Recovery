@@ -108,7 +108,7 @@ class FastRCNNLossComputation(object):
         for img_idx, (pos_inds_img, neg_inds_img) in enumerate(
             zip(sampled_pos_inds, sampled_neg_inds)
         ):
-            img_sampled_inds = torch.nonzero(pos_inds_img.to(torch.uint8) | neg_inds_img.to(torch.uint8)).squeeze(1)
+            img_sampled_inds = torch.nonzero(pos_inds_img | neg_inds_img).squeeze(1)
             proposals_per_image = proposals[img_idx][img_sampled_inds]
             proposals[img_idx] = proposals_per_image
 

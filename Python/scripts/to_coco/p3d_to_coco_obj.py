@@ -79,7 +79,8 @@ def main():
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in img_list]
         anno_list = [os.path.join(args.anno_dir, x + ".mat") for x in file_names]
 
-        for i in tqdm(range(len(img_list))):
+        # for i in tqdm(range(len(img_list))):
+        for i in tqdm(range(5)):
             img_desc = create_img_desc(img_list[i], i)
             img_annotations, an_id = read_mat(anno_list[i], i, an_id)
             annotations.extend(img_annotations)
@@ -97,16 +98,16 @@ def main():
         licenses = {}
 
         categories = [
-            {"supercategory": "car_type", "id": 1, "name": "CAD1"},
-            {"supercategory": "car_type", "id": 2, "name": "CAD2"},
-            {"supercategory": "car_type", "id": 3, "name": "CAD3"},
-            {"supercategory": "car_type", "id": 4, "name": "CAD4"},
-            {"supercategory": "car_type", "id": 5, "name": "CAD5"},
-            {"supercategory": "car_type", "id": 6, "name": "CAD6"},
-            {"supercategory": "car_type", "id": 7, "name": "CAD7"},
-            {"supercategory": "car_type", "id": 8, "name": "CAD8"},
-            {"supercategory": "car_type", "id": 9, "name": "CAD9"},
-            {"supercategory": "car_type", "id": 10, "name": "CAD10"}
+            {"supercategory": "CAD1", "id": 0, "name": "CAD1"},
+            {"supercategory": "CAD2", "id": 1, "name": "CAD2"},
+            {"supercategory": "CAD3", "id": 2, "name": "CAD3"},
+            {"supercategory": "CAD4", "id": 3, "name": "CAD4"},
+            {"supercategory": "CAD5", "id": 4, "name": "CAD5"},
+            {"supercategory": "CAD6", "id": 5, "name": "CAD6"},
+            {"supercategory": "CAD7", "id": 6, "name": "CAD7"},
+            {"supercategory": "CAD8", "id": 7, "name": "CAD8"},
+            {"supercategory": "CAD9", "id": 8, "name": "CAD9"},
+            {"supercategory": "CAD10", "id": 9, "name": "CAD10"}
         ]
 
         annotation_file = {
@@ -117,9 +118,9 @@ def main():
             "annotations": annotations
         }
 
-        out_file = os.path.join(args.anno_dir) + '/' + str(phase) + '_test_anno.json'
+        out_file = os.path.join(args.anno_dir) + '/' + str(phase) + '_subset_anno.json'
         with open(out_file, 'w') as outfile:
-            json.dump(annotation_file, outfile, indent=4)
+            json.dump(annotation_file, outfile, sort_keys=True, indent=4)
 
 if __name__ == '__main__':
 
