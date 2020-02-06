@@ -25,6 +25,8 @@ from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 
+from tensorboardX import SummaryWriter
+
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
 try:
@@ -33,7 +35,7 @@ except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
-def train(cfg, local_rank, distributed):
+def train(cfg, local_rank, distributed, writer):
     model = build_detection_model(cfg)
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
@@ -92,6 +94,7 @@ def train(cfg, local_rank, distributed):
         checkpoint_period,
         test_period,
         arguments,
+        writer,
     )
 
     return model
@@ -131,6 +134,9 @@ def run_test(cfg, model, distributed):
 
 
 def main():
+
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_05_FRCNN_COCO_train")
+
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
@@ -191,7 +197,7 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, args.local_rank, args.distributed)
+    model = train(cfg, args.local_rank, args.distributed, writer)
 
     if not args.skip_test:
         run_test(cfg, model, args.distributed)
