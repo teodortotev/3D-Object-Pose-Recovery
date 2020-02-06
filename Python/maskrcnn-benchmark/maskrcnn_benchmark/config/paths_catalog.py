@@ -8,12 +8,12 @@ class DatasetCatalog(object):
     DATA_DIR = ""
     DATASETS = {
         "coco_2017_train": {
-            "img_dir": "coco/train2017",
-            "ann_file": "coco/annotations/instances_train2017.json"
+            "img_dir": "/home/teo/storage/Data/coco/train2017",
+            "ann_file": "/home/teo/storage/Data/coco/annotations/instances_train2017.json"
         },
         "coco_2017_val": {
-            "img_dir": "coco/val2017",
-            "ann_file": "coco/annotations/instances_val2017.json"
+            "img_dir": "/home/teo/storage/Data/coco/val2017",
+            "ann_file": "/home/teo/storage/Data/coco/annotations/instances_val2017.json"
         },
         "coco_2014_train": {
             "img_dir": "coco/train2014",
