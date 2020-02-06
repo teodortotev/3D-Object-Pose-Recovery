@@ -135,12 +135,12 @@ def run_test(cfg, model, distributed):
 
 def main():
 
-    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_05_FRCNN_COCO_train")
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_06_FRCNN_pasc3d_obj_train")
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/caffe2/e2e_faster_rcnn_R_50_FPN_1x_caffe2_MODIF.yaml",
+        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
