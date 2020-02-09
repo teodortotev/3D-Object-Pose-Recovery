@@ -5,10 +5,10 @@ DATALOADER:
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - pasc3d_test_cocostyle
+  - pasc3d_val_subset_cocostyle
   TRAIN:
-  - pasc3d_train_cocostyle
-  - pasc3d_val_cocostyle
+  - pasc3d_train_subset_cocostyle
+  - pasc3d_val_subset_cocostyle
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0

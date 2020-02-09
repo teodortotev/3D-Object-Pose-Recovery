@@ -5,9 +5,10 @@ DATALOADER:
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - coco_2017_val
+  - pasc3d_test_cocostyle
   TRAIN:
-  - coco_2017_val
+  - pasc3d_train_cocostyle
+  - pasc3d_val_cocostyle
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0
@@ -121,7 +122,7 @@ MODEL:
     DILATION: 1
     FEATURE_EXTRACTOR: FPN2MLPFeatureExtractor
     MLP_HEAD_DIM: 1024
-    NUM_CLASSES: 81
+    NUM_CLASSES: 11
     NUM_STACKED_CONVS: 4
     POOLER_RESOLUTION: 7
     POOLER_SAMPLING_RATIO: 2
@@ -210,24 +211,25 @@ MODEL:
     STRADDLE_THRESH: 0
     USE_FPN: true
   RPN_ONLY: false
-  WEIGHT: catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x
+  WEIGHT: catalog://ImageNetPretrained/MSRA/R-50
 OUTPUT_DIR: .
 PATHS_CATALOG: /media/root/storage/teo/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/maskrcnn_benchmark/config/paths_catalog.py
 SOLVER:
-  BASE_LR: 0.0005
+  BASE_LR: 0.01
   BIAS_LR_FACTOR: 2
   CHECKPOINT_PERIOD: 2500
   GAMMA: 0.1
   IMS_PER_BATCH: 8
-  MAX_ITER: 80000
+  MAX_ITER: 180000
   MOMENTUM: 0.9
   STEPS:
-  - 60000
+  - 120000
+  - 160000
   TEST_PERIOD: 0
   WARMUP_FACTOR: 0.3333333333333333
   WARMUP_ITERS: 500
   WARMUP_METHOD: linear
-  WEIGHT_DECAY: 0.0005
+  WEIGHT_DECAY: 0.0001
   WEIGHT_DECAY_BIAS: 0
 TEST:
   BBOX_AUG:
@@ -239,4 +241,4 @@ TEST:
   DETECTIONS_PER_IMG: 100
   EXPECTED_RESULTS: []
   EXPECTED_RESULTS_SIGMA_TOL: 4
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 1

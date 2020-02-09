@@ -80,7 +80,7 @@ def main():
         anno_list = [os.path.join(args.anno_dir, x + ".mat") for x in file_names]
 
         # for i in tqdm(range(len(img_list))):
-        for i in tqdm(range(5)):
+        for i in tqdm(range(50)):
             img_desc = create_img_desc(img_list[i], i)
             img_annotations, an_id = read_mat(anno_list[i], i, an_id)
             annotations.extend(img_annotations)
@@ -98,16 +98,16 @@ def main():
         licenses = {}
 
         categories = [
-            {"supercategory": "CAD1", "id": 0, "name": "CAD1"},
-            {"supercategory": "CAD2", "id": 1, "name": "CAD2"},
-            {"supercategory": "CAD3", "id": 2, "name": "CAD3"},
-            {"supercategory": "CAD4", "id": 3, "name": "CAD4"},
-            {"supercategory": "CAD5", "id": 4, "name": "CAD5"},
-            {"supercategory": "CAD6", "id": 5, "name": "CAD6"},
-            {"supercategory": "CAD7", "id": 6, "name": "CAD7"},
-            {"supercategory": "CAD8", "id": 7, "name": "CAD8"},
-            {"supercategory": "CAD9", "id": 8, "name": "CAD9"},
-            {"supercategory": "CAD10", "id": 9, "name": "CAD10"}
+            {"supercategory": "CAD1", "id": 1, "name": "CAD1"},
+            {"supercategory": "CAD2", "id": 2, "name": "CAD2"},
+            {"supercategory": "CAD3", "id": 3, "name": "CAD3"},
+            {"supercategory": "CAD4", "id": 4, "name": "CAD4"},
+            {"supercategory": "CAD5", "id": 5, "name": "CAD5"},
+            {"supercategory": "CAD6", "id": 6, "name": "CAD6"},
+            {"supercategory": "CAD7", "id": 7, "name": "CAD7"},
+            {"supercategory": "CAD8", "id": 8, "name": "CAD8"},
+            {"supercategory": "CAD9", "id": 9, "name": "CAD9"},
+            {"supercategory": "CAD10", "id": 10, "name": "CAD10"}
         ]
 
         annotation_file = {

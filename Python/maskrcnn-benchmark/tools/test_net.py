@@ -17,6 +17,8 @@ from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
+from tensorboardX import SummaryWriter
+
 # Check if we can enable mixed-precision via apex.amp
 try:
     from apex import amp
@@ -25,10 +27,12 @@ except ImportError:
 
 
 def main():
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_07_FRCNN_pasc3d_obj_test")
+
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/caffe2/e2e_faster_rcnn_R_50_FPN_1x_caffe2.yaml",
+        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
         metavar="FILE",
         help="path to config file",
     )
