@@ -40,7 +40,7 @@ def main():
     parser.add_argument(
         "--ckpt",
         help="The path to the checkpoint for test, default is the latest checkpoint.",
-        default=None,
+        default='/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/tools/model_0157500.pth',
     )
     parser.add_argument(
         "opts",
