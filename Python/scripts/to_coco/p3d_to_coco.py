@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 from tqdm import tqdm
 
 
-# # Transform Pascal3D+ to CoCo format
+# Transform Pascal3D+ to CoCo format
 
 def create_sub_masks(msk_path, writer):
     mask = np.genfromtxt(msk_path, delimiter=',', dtype=np.uint8)
@@ -49,7 +49,9 @@ def create_sub_mask_annotation(sub_mask, image_id, category, annotation_id, is_c
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g. an elephant behind a tree)
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation='low')
-    print(len(contours))
+
+    print(contours)
+    exit()
 
     annotation_list = []
     for j in range(len(contours)):
@@ -78,10 +80,6 @@ def create_sub_mask_annotation(sub_mask, image_id, category, annotation_id, is_c
         height = max_y - y
         bbox = (x, y, width, height)
         area = poly.area
-
-        print(type(area))
-        print(type(bbox))
-        exit()
 
         annotation = {
             'segmentation': segmentation,
@@ -113,7 +111,7 @@ def create_img_desc(img_path, img_id):
 
 def main():
 
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/scripts/runs/name', comment='_test_coco_trans')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/3D_Object_Pose_Recovery/name/p3d_to_coco_part_objects')
     
     split = ['train', 'val', 'test']
     
@@ -134,7 +132,6 @@ def main():
                 annotation_list, an_id = create_sub_mask_annotation(sub_mask, i, int(color), an_id, 0, writer)
                 #writer.add_image('submask', np.expand_dims(np.asarray(sub_mask), axis=0), an_id)
                 annotations.extend(annotation_list)
-            exit()
             images.append(img_desc)
         
         #writer.close()
@@ -142,10 +139,10 @@ def main():
         info = {
             "description": "Pascal3D+ Car Dataset",
             "url": "http://cvgl.stanford.edu/projects/pascal3d.html",
-            "version": "1.0",
+            "version": "1.1",
             "year": 2019,
             "contributor": "Teodor Totev",
-            "date_created": "2019/12/06"
+            "date_created": "2020/02/10"
         }
 
         licenses = {}
@@ -169,7 +166,7 @@ def main():
             "annotations": annotations
         }
 
-        out_file = os.path.join(args.anno_dir, phase) + '/test_anno.json'
+        out_file = os.path.join(args.anno_dir, phase) + '_anno.json'
         with open(out_file, 'w') as outfile:
             json.dump(annotation_file, outfile, indent=4)
 
@@ -179,7 +176,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert Pascal3D to Coco Style')
     parser.add_argument('--image_dir',  '-im',  type=str, default='/home/teo/storage/Data/Images/car_combined')
     parser.add_argument('--mask_dir',   '-ma',  type=str, default='/home/teo/storage/Data/Masks/car_combined')
-    parser.add_argument('--anno_dir',   '-an',  type=str, default='/home/teo/storage/Data/Annotations/car_combined')
+    parser.add_argument('--anno_dir',   '-an',  type=str, default='/home/teo/storage/Data/Annotations/car_combined/part_objects')
     args = parser.parse_args()
 
     # Run the conversion

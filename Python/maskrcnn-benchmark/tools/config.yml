@@ -5,10 +5,10 @@ DATALOADER:
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - pasc3d_test_cocostyle
+  - pasc3d_test_objparts_cocostyle
   TRAIN:
-  - pasc3d_train_cocostyle
-  - pasc3d_val_cocostyle
+  - pasc3d_train_objparts_cocostyle
+  - pasc3d_val_objparts_cocostyle
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0
@@ -64,7 +64,7 @@ MODEL:
     EPSILON: 1.0e-05
     NUM_GROUPS: 32
   KEYPOINT_ON: false
-  MASK_ON: false
+  MASK_ON: true
   META_ARCHITECTURE: GeneralizedRCNN
   RESNETS:
     BACKBONE_OUT_CHANNELS: 256
@@ -84,7 +84,7 @@ MODEL:
     WIDTH_PER_GROUP: 64
     WITH_MODULATED_DCN: false
   RETINANET:
-    ANCHOR_SIZES: &id002
+    ANCHOR_SIZES: &id001
     - 32
     - 64
     - 128
@@ -96,7 +96,7 @@ MODEL:
     - 32
     - 64
     - 128
-    ASPECT_RATIOS: &id003
+    ASPECT_RATIOS: &id002
     - 0.5
     - 1.0
     - 2.0
@@ -122,7 +122,7 @@ MODEL:
     DILATION: 1
     FEATURE_EXTRACTOR: FPN2MLPFeatureExtractor
     MLP_HEAD_DIM: 1024
-    NUM_CLASSES: 11
+    NUM_CLASSES: 9
     NUM_STACKED_CONVS: 4
     POOLER_RESOLUTION: 7
     POOLER_SAMPLING_RATIO: 2
@@ -162,7 +162,7 @@ MODEL:
     NUM_CLASSES: 17
     POOLER_RESOLUTION: 14
     POOLER_SAMPLING_RATIO: 0
-    POOLER_SCALES: &id001
+    POOLER_SCALES:
     - 0.0625
     PREDICTOR: KeypointRCNNPredictor
     RESOLUTION: 14
@@ -174,32 +174,37 @@ MODEL:
     - 256
     - 256
     DILATION: 1
-    FEATURE_EXTRACTOR: ResNet50Conv5ROIFeatureExtractor
+    FEATURE_EXTRACTOR: MaskRCNNFPNFeatureExtractor
     MLP_HEAD_DIM: 1024
+    NUM_CLASSES: 9
     POOLER_RESOLUTION: 14
-    POOLER_SAMPLING_RATIO: 0
-    POOLER_SCALES: *id001
+    POOLER_SAMPLING_RATIO: 2
+    POOLER_SCALES:
+    - 0.25
+    - 0.125
+    - 0.0625
+    - 0.03125
     POSTPROCESS_MASKS: false
     POSTPROCESS_MASKS_THRESHOLD: 0.5
     PREDICTOR: MaskRCNNC4Predictor
-    RESOLUTION: 14
-    SHARE_BOX_FEATURE_EXTRACTOR: true
+    RESOLUTION: 28
+    SHARE_BOX_FEATURE_EXTRACTOR: false
     USE_GN: false
   RPN:
-    ANCHOR_SIZES: *id002
+    ANCHOR_SIZES: *id001
     ANCHOR_STRIDE:
     - 4
     - 8
     - 16
     - 32
     - 64
-    ASPECT_RATIOS: *id003
+    ASPECT_RATIOS: *id002
     BATCH_SIZE_PER_IMAGE: 256
     BG_IOU_THRESHOLD: 0.3
     FG_IOU_THRESHOLD: 0.7
     FPN_POST_NMS_PER_BATCH: true
     FPN_POST_NMS_TOP_N_TEST: 1000
-    FPN_POST_NMS_TOP_N_TRAIN: 8000
+    FPN_POST_NMS_TOP_N_TRAIN: 2000
     MIN_SIZE: 0
     NMS_THRESH: 0.7
     POSITIVE_FRACTION: 0.5
@@ -215,16 +220,16 @@ MODEL:
 OUTPUT_DIR: .
 PATHS_CATALOG: /media/root/storage/teo/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/maskrcnn_benchmark/config/paths_catalog.py
 SOLVER:
-  BASE_LR: 0.01
+  BASE_LR: 0.00125
   BIAS_LR_FACTOR: 2
   CHECKPOINT_PERIOD: 2500
   GAMMA: 0.1
-  IMS_PER_BATCH: 8
-  MAX_ITER: 180000
+  IMS_PER_BATCH: 1
+  MAX_ITER: 1440000
   MOMENTUM: 0.9
   STEPS:
-  - 120000
-  - 160000
+  - 960000
+  - 1280000
   TEST_PERIOD: 0
   WARMUP_FACTOR: 0.3333333333333333
   WARMUP_ITERS: 500
