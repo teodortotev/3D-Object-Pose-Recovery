@@ -6,17 +6,13 @@ from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.segmentation_mask import SegmentationMask
 from maskrcnn_benchmark.structures.keypoint import PersonKeypoints
 
-
 min_keypoints_per_image = 10
-
 
 def _count_visible_keypoints(anno):
     return sum(sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno)
 
-
 def _has_only_empty_bbox(anno):
     return all(any(o <= 1 for o in obj["bbox"][2:]) for obj in anno)
-
 
 def has_valid_annotation(anno):
     # if it's empty, there is no annotation
@@ -34,7 +30,6 @@ def has_valid_annotation(anno):
     if _count_visible_keypoints(anno) >= min_keypoints_per_image:
         return True
     return False
-
 
 class COCODataset(torchvision.datasets.coco.CocoDetection):
     def __init__(
@@ -56,6 +51,14 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
 
         self.categories = {cat['id']: cat['name'] for cat in self.coco.cats.values()}
 
+        self.partcategories = {part['id']: part['name'] for part in self.coco.parts.values()}
+
+        self.json_partcategory_id_to_contiguous_id = {
+            v: i + 1 for i, v in enumerate(self.coco.getPartIds())
+        }
+        self.contiguous_partcategory_id_to_json_id = {
+            v: k for k, v in self.json_partcategory_id_to_contiguous_id.items()
+        }
         self.json_category_id_to_contiguous_id = {
             v: i + 1 for i, v in enumerate(self.coco.getCatIds())
         }
@@ -82,9 +85,25 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         target.add_field("labels", classes)
 
         if anno and "segmentation" in anno[0]:
-            masks = [obj["segmentation"] for obj in anno]
-            masks = SegmentationMask(masks, img.size, mode='poly')
-            # target.add_field("masks", masks)
+            # Get dictionary of part segmentations for each object
+            segmentations = [obj["segmentation"] for obj in anno]
+
+            # Accumulate classes
+            partclasses = []
+            for i in range(len(segmentations)): 
+                partclass = [obj['class'] for obj in segmentations[i]]
+                partclass = [self.json_partcategory_id_to_contiguous_id[p] for p in partclass]
+                partclass = torch.tensor(partclass)
+                partclasses.append(partclass)
+            target.add_field("partlabels", partclasses)
+
+            # Accumulate masks
+            masks = []
+            for i in range(len(segmentations)):
+                mask = [obj["segment"] for obj in segmentations[i]]
+                mask = SegmentationMask(mask, img.size, mode='poly')
+                masks.append(mask)
+            target.add_field("masks", masks)
 
         if anno and "keypoints" in anno[0]:
             keypoints = [obj["keypoints"] for obj in anno]

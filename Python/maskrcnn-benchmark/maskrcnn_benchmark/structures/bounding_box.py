@@ -5,7 +5,6 @@ import torch
 FLIP_LEFT_RIGHT = 0
 FLIP_TOP_BOTTOM = 1
 
-
 class BoxList(object):
     """
     This class represents a set of bounding boxes.
@@ -103,9 +102,13 @@ class BoxList(object):
             bbox = BoxList(scaled_box, size, mode=self.mode)
             # bbox._copy_extra_fields(self)
             for k, v in self.extra_fields.items():
-                if not isinstance(v, torch.Tensor):
-                    v = v.resize(size, *args, **kwargs)
-                bbox.add_field(k, v)
+                objects = []
+                if not isinstance(v, torch.Tensor) and not isinstance(v[0], torch.Tensor):
+                    for obj in v:
+                        objects.append(obj.resize(size, *args, **kwargs))
+                    bbox.add_field(k, objects)
+                else:
+                    bbox.add_field(k, v)
             return bbox
 
         ratio_width, ratio_height = ratios
@@ -120,10 +123,13 @@ class BoxList(object):
         bbox = BoxList(scaled_box, size, mode="xyxy")
         # bbox._copy_extra_fields(self)
         for k, v in self.extra_fields.items():
-            if not isinstance(v, torch.Tensor):
-                v = v.resize(size, *args, **kwargs)
-            bbox.add_field(k, v)
-
+            objects = []
+            if not isinstance(v, torch.Tensor) and not isinstance(v[0], torch.Tensor):
+                for obj in v:
+                    objects.append(obj.resize(size, *args, **kwargs))
+                bbox.add_field(k, objects)
+            else:
+                bbox.add_field(k, v)
         return bbox.convert(self.mode)
 
     def transpose(self, method):
@@ -159,9 +165,13 @@ class BoxList(object):
         bbox = BoxList(transposed_boxes, self.size, mode="xyxy")
         # bbox._copy_extra_fields(self)
         for k, v in self.extra_fields.items():
-            if not isinstance(v, torch.Tensor):
-                v = v.transpose(method)
-            bbox.add_field(k, v)
+            objects = []
+            if not isinstance(v, torch.Tensor) and not isinstance(v[0], torch.Tensor):
+                for obj in v:
+                    objects.append(obj.transpose(method))
+                bbox.add_field(k, objects)
+            else:
+                bbox.add_field(k, v)
         return bbox.convert(self.mode)
 
     def crop(self, box):
@@ -205,7 +215,14 @@ class BoxList(object):
     def __getitem__(self, item):
         bbox = BoxList(self.bbox[item], self.size, self.mode)
         for k, v in self.extra_fields.items():
-            bbox.add_field(k, v[item])
+            if isinstance(v, list):
+                o = []
+                for i in range(len(item)):
+                    if item[i] == 1:
+                        o.append(v[i])
+            else:
+                o = v[item]
+            bbox.add_field(k, o)
         return bbox
 
     def __len__(self):
@@ -253,7 +270,6 @@ class BoxList(object):
         s += "image_height={}, ".format(self.size[1])
         s += "mode={})".format(self.mode)
         return s
-
 
 if __name__ == "__main__":
     bbox = BoxList([[0, 0, 10, 10], [0, 0, 5, 5]], (10, 10))

@@ -140,11 +140,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-<<<<<<< HEAD
         default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_mask_rcnn_R_50_FPN_1x_carpart.yaml",
-=======
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
->>>>>>> 268930892daf9c9ed4a874fcc485eb8020b93f44
         metavar="FILE",
         help="path to config file",
         type=str,
