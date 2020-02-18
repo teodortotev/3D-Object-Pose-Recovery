@@ -5,10 +5,9 @@ DATALOADER:
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - pasc3d_val_subset_cocostyle
+  - coco_2017_val
   TRAIN:
-  - pasc3d_train_subset_cocostyle
-  - pasc3d_val_subset_cocostyle
+  - coco_2017_train
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0
@@ -122,7 +121,7 @@ MODEL:
     DILATION: 1
     FEATURE_EXTRACTOR: FPN2MLPFeatureExtractor
     MLP_HEAD_DIM: 1024
-    NUM_CLASSES: 11
+    NUM_CLASSES: 81
     NUM_STACKED_CONVS: 4
     POOLER_RESOLUTION: 7
     POOLER_SAMPLING_RATIO: 2
@@ -199,7 +198,7 @@ MODEL:
     FG_IOU_THRESHOLD: 0.7
     FPN_POST_NMS_PER_BATCH: true
     FPN_POST_NMS_TOP_N_TEST: 1000
-    FPN_POST_NMS_TOP_N_TRAIN: 8000
+    FPN_POST_NMS_TOP_N_TRAIN: 2000
     MIN_SIZE: 0
     NMS_THRESH: 0.7
     POSITIVE_FRACTION: 0.5
@@ -215,16 +214,16 @@ MODEL:
 OUTPUT_DIR: .
 PATHS_CATALOG: /media/root/storage/teo/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/maskrcnn_benchmark/config/paths_catalog.py
 SOLVER:
-  BASE_LR: 0.01
+  BASE_LR: 0.02
   BIAS_LR_FACTOR: 2
   CHECKPOINT_PERIOD: 2500
   GAMMA: 0.1
-  IMS_PER_BATCH: 8
-  MAX_ITER: 180000
+  IMS_PER_BATCH: 16
+  MAX_ITER: 90000
   MOMENTUM: 0.9
   STEPS:
-  - 120000
-  - 160000
+  - 60000
+  - 80000
   TEST_PERIOD: 0
   WARMUP_FACTOR: 0.3333333333333333
   WARMUP_ITERS: 500
@@ -241,4 +240,4 @@ TEST:
   DETECTIONS_PER_IMG: 100
   EXPECTED_RESULTS: []
   EXPECTED_RESULTS_SIGMA_TOL: 4
-  IMS_PER_BATCH: 1
+  IMS_PER_BATCH: 8
