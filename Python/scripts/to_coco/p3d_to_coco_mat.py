@@ -121,8 +121,8 @@ def main():
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in img_list]
         anno_list = [os.path.join(args.anno_dir, x + ".mat") for x in file_names]
 
-        for i in tqdm(range(len(img_list))):
-        # for i in tqdm(range(5)):
+        # for i in tqdm(range(len(img_list))):
+        for i in tqdm(range(15)):
             img_desc = create_img_desc(img_list[i], i)
             img_annotations, an_id = read_mat(anno_list[i], i, an_id)
             annotations.extend(img_annotations)
@@ -134,7 +134,7 @@ def main():
             "version": "1.0",
             "year": 2020,
             "contributor": "Teodor Totev",
-            "date_created": "2020/02/12"
+            "date_created": "2020/02/18"
         }
 
         licenses = {}
@@ -152,21 +152,33 @@ def main():
             {"supercategory": "CAD10", "id": 10, "name": "CAD10"}
         ]
 
+        partcategories = [
+            {"supercategory": "FBR", "id": 1, "name": "FBR"},
+            {"supercategory": "FBL", "id": 2, "name": "FBL"},
+            {"supercategory": "BBR", "id": 3, "name": "BBR"},
+            {"supercategory": "BBL", "id": 4, "name": "BBL"},
+            {"supercategory": "FTR", "id": 5, "name": "FTR"},
+            {"supercategory": "FTL", "id": 6, "name": "FTL"},
+            {"supercategory": "BTR", "id": 7, "name": "BTR"},
+            {"supercategory": "BTL", "id": 8, "name": "BTL"},
+        ]
+
         annotation_file = {
             "info": info,
             "licenses": licenses,
             "categories": categories,
+            "partcategories": partcategories,
             "images": images,
             "annotations": annotations
         }
 
-        # out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_subset_anno.json'
-        # with open(out_file, 'w') as outfile:
-        #     json.dump(annotation_file, outfile, indent=4)
-
-        out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_anno.json'
+        out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_subset_anno.json'
         with open(out_file, 'w') as outfile:
             json.dump(annotation_file, outfile, indent=4)
+
+        # out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_anno.json'
+        # with open(out_file, 'w') as outfile:
+        #     json.dump(annotation_file, outfile, indent=4)
 
 if __name__ == '__main__':
 

@@ -32,7 +32,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
+        default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -40,7 +40,7 @@ def main():
     parser.add_argument(
         "--ckpt",
         help="The path to the checkpoint for test, default is the latest checkpoint.",
-        default='/home/teo/storage/Code/3D_Object_Pose_Recovery/Python/maskrcnn-benchmark/tools/model_0157500.pth',
+        default='/home/teo/storage/Data/Models/car_combined/FastRCNN/model_final.pth',
     )
     parser.add_argument(
         "opts",
