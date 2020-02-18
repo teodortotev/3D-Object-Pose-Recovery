@@ -36,8 +36,6 @@ def initialize_model(model_name, num_classes):
         if model_name == 'DeepLab101':
             model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, progress=True, num_classes=num_classes, aux_loss=None)
 
-        print(model)
-        exit()
         pretrained_state_dict = torch.load("/home/teo/storage/Data/pretrained_weight_DeepLab101")
         model.load_state_dict(pretrained_state_dict, strict=False)
 
@@ -98,7 +96,13 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
 
                 # Forward
                 # Get model outputs and calculate loss
+
+                print('hi')
+
                 outputs = model(inputs)
+                
+                print('after outputs')
+
                 loss = criterion(outputs['out'], labels.long())
 
                 _, preds = torch.max(outputs['out'], 1)
@@ -179,7 +183,9 @@ def main():
 
     model = initialize_model(args.model_name, args.num_classes)  # Initialize model
 
-    model.cuda(args.device)  # Send to device
+    print(args.device)
+
+    model.to(args.device)  # Send to device
 
     # Set the optimizer
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr_start)
@@ -245,7 +251,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a segmentation network with PyTorch')
     parser.add_argument('--load',       '-l', type=int, default=0)
     parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_pascal')
-    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks/car_pascal')
+    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks_old/car_pascal')
     parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_pascal')
     parser.add_argument('--size',       '-s' ,type=int, default=128)
     parser.add_argument('--num_classes','-nc',type=int, default=9)
