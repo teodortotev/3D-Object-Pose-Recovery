@@ -11,7 +11,7 @@ from maskrcnn_benchmark.modeling import registry
 class MaskRCNNC4Predictor(nn.Module):
     def __init__(self, cfg, in_channels):
         super(MaskRCNNC4Predictor, self).__init__()
-        num_classes = cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES
+        num_classes = cfg.MODEL.ROI_MASK_HEAD.NUM_CLASSES
         dim_reduced = cfg.MODEL.ROI_MASK_HEAD.CONV_LAYERS[-1]
         num_inputs = in_channels
 

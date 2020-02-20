@@ -95,15 +95,36 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
                 partclass = [self.json_partcategory_id_to_contiguous_id[p] for p in partclass]
                 partclass = torch.tensor(partclass)
                 partclasses.append(partclass)
-            target.add_field("partlabels", partclasses)
 
             # Accumulate masks
             masks = []
             for i in range(len(segmentations)):
                 mask = [obj["segment"] for obj in segmentations[i]]
                 mask = SegmentationMask(mask, img.size, mode='poly')
+                mask = mask.convert(mode='mask')
                 masks.append(mask)
-            target.add_field("masks", masks)
+
+            # Merge all masks belonging to the same part class
+            new_masks = []
+            for msk, pcls in zip(masks, partclasses):
+                segments = msk.get_mask_tensor()
+                new_segments = torch.zeros((len(self.partcategories), segments.size()[1], segments.size(2)), dtype=torch.uint8)
+                for partcat in range(len(self.partcategories)):
+                    for n_poly in range(pcls.size()[0]):
+                        if int(pcls[n_poly]) == (partcat + 1):
+                            new_segments[partcat, :, :] = new_segments[partcat, :, :] | segments[n_poly, :, :]
+                new_mask = SegmentationMask(new_segments, img.size, mode='mask')
+                new_masks.append(new_mask)
+            
+            new_partclass = [self.json_partcategory_id_to_contiguous_id[p+1] for p in range(len(self.partcategories))]
+            new_partclass = torch.tensor(new_partclass)
+
+            new_partclasses = []
+            for a in range(len(new_masks)):
+                new_partclasses.append(new_partclass)
+
+            target.add_field('partlabels', new_partclasses)
+            target.add_field('masks', new_masks)
 
         if anno and "keypoints" in anno[0]:
             keypoints = [obj["keypoints"] for obj in anno]

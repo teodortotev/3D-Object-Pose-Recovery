@@ -218,8 +218,11 @@ class BoxList(object):
             if isinstance(v, list):
                 o = []
                 for i in range(len(item)):
-                    if item[i] == 1:
-                        o.append(v[i])
+                    if item.dtype == torch.uint8:
+                        if item[i] == 1:
+                            o.append(v[i])
+                    else:
+                        o.append(v[item[i]])
             else:
                 o = v[item]
             bbox.add_field(k, o)

@@ -82,6 +82,9 @@ def train(cfg, local_rank, distributed, writer):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
+    print(model)
+    print('Printing from /home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/tools/train_net.py')
+
     do_train(
         cfg,
         model,

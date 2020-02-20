@@ -27,6 +27,8 @@ DATASETS:
   TEST: ("pasc3d_test_subset_cocostyle",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
+  # TODO: Return number of workers to normal - 4
+  NUM_WORKERS: 0
 SOLVER:
   BASE_LR: 0.01
   WEIGHT_DECAY: 0.0001

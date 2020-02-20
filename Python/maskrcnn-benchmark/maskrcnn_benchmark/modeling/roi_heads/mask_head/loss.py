@@ -24,7 +24,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     M = discretization_size
     device = proposals.bbox.device
     proposals = proposals.convert("xyxy")
-    assert segmentation_masks.size == proposals.size, "{}, {}".format(
+    assert segmentation_masks[0].size == proposals.size, "{}, {}".format(
         segmentation_masks, proposals
     )
 
@@ -32,7 +32,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     proposals = proposals.bbox.to(torch.device("cpu"))
     for segmentation_mask, proposal in zip(segmentation_masks, proposals):
         # crop the masks, resize them to the desired resolution and
-        # then convert them to the tensor representation.
+        # then convert them to the tensor representation.        
         cropped_mask = segmentation_mask.crop(proposal)
         scaled_mask = cropped_mask.resize((M, M))
         mask = scaled_mask.get_mask_tensor()
@@ -40,7 +40,6 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     if len(masks) == 0:
         return torch.empty(0, dtype=torch.float32, device=device)
     return torch.stack(masks, dim=0).to(device, dtype=torch.float32)
-
 
 class MaskRCNNLossComputation(object):
     def __init__(self, proposal_matcher, discretization_size):
@@ -54,15 +53,18 @@ class MaskRCNNLossComputation(object):
 
     def match_targets_to_proposals(self, proposal, target):
         match_quality_matrix = boxlist_iou(target, proposal)
+      
         matched_idxs = self.proposal_matcher(match_quality_matrix)
+
         # Mask RCNN needs "labels" and "masks "fields for creating the targets
-        target = target.copy_with_fields(["labels", "masks"])
+        target = target.copy_with_fields(["labels", "partlabels", "masks"])
         # get the targets corresponding GT for each proposal
         # NB: need to clamp the indices because we can have a single
         # GT in the image, and matched_idxs can be -2, which goes
         # out of bounds
         matched_targets = target[matched_idxs.clamp(min=0)]
         matched_targets.add_field("matched_idxs", matched_idxs)
+
         return matched_targets
 
     def prepare_targets(self, proposals, targets):
@@ -72,11 +74,13 @@ class MaskRCNNLossComputation(object):
             matched_targets = self.match_targets_to_proposals(
                 proposals_per_image, targets_per_image
             )
+
             matched_idxs = matched_targets.get_field("matched_idxs")
 
             labels_per_image = matched_targets.get_field("labels")
             labels_per_image = labels_per_image.to(dtype=torch.int64)
 
+            partlabels_per_image = matched_targets.get_field("partlabels")
             # this can probably be removed, but is left here for clarity
             # and completeness
             neg_inds = matched_idxs == Matcher.BELOW_LOW_THRESHOLD
@@ -86,7 +90,8 @@ class MaskRCNNLossComputation(object):
             positive_inds = torch.nonzero(labels_per_image > 0).squeeze(1)
 
             segmentation_masks = matched_targets.get_field("masks")
-            segmentation_masks = segmentation_masks[positive_inds]
+            # segmentation_masks = segmentation_masks[positive_inds]
+            segmentation_masks = [segmentation_masks[i] for i in positive_inds.cpu()]
 
             positive_proposals = proposals_per_image[positive_inds]
 
@@ -114,17 +119,20 @@ class MaskRCNNLossComputation(object):
         labels = cat(labels, dim=0)
         mask_targets = cat(mask_targets, dim=0)
 
-        positive_inds = torch.nonzero(labels > 0).squeeze(1)
-        labels_pos = labels[positive_inds]
+        # positive_inds = torch.nonzero(labels > 0).squeeze(1)
+        # labels_pos = labels[positive_inds]
 
         # torch.mean (in binary_cross_entropy_with_logits) doesn't
         # accept empty tensors, so handle it separately
         if mask_targets.numel() == 0:
             return mask_logits.sum() * 0
 
-        mask_loss = F.binary_cross_entropy_with_logits(
-            mask_logits[positive_inds, labels_pos], mask_targets
-        )
+        # mask_loss = F.binary_cross_entropy_with_logits(
+        #     mask_logits[positive_inds, labels_pos], mask_targets
+        # )
+
+        mask_loss = F.binary_cross_entropy_with_logits(mask_logits, mask_targets)
+
         return mask_loss
 
 
