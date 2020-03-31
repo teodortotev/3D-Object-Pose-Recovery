@@ -116,27 +116,27 @@ class DatasetCatalog(object):
             "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
             "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_objects/test_subset_anno.json"
         },
-        "pasc3d_train_objparts_cocostyle": {
+        "pasc3d_train_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/part_objects/train_anno.json"
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/train_anno.json"
         },
-        "pasc3d_val_objparts_cocostyle": {
+        "pasc3d_val_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/part_objects/val_anno.json"
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/val_anno.json"
         },
-        "pasc3d_test_objparts_cocostyle": {
+        "pasc3d_test_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
-            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/part_objects/test_anno.json"
+            "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/test_anno.json"
         },
-        "pasc3d_train_subset_objparts_cocostyle": {
+        "pasc3d_train_subset_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/train",
             "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/train_subset_anno.json"
         },
-        "pasc3d_val_subset_objparts_cocostyle": {
+        "pasc3d_val_subset_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/val",
             "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/val_subset_anno.json"
         },
-        "pasc3d_test_subset_objparts_cocostyle": {
+        "pasc3d_test_subset_carparts_cocostyle": {
             "img_dir": "/home/teo/storage/Data/Images/car_combined/test",
             "ann_file": "/home/teo/storage/Data/Annotations/car_combined/car_parts/test_subset_anno.json"
         },

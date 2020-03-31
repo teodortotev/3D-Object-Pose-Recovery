@@ -36,7 +36,7 @@ class CombinedROIHeads(torch.nn.ModuleDict):
                 mask_features = x
             # During training, self.box() will return the unaltered proposals as "detections"
             # this makes the API consistent during training and testing
-            x, detections, loss_mask = self.mask(mask_features, detections, targets)
+            x, detections, loss_mask = self.mask(mask_features, detections, targets) 
             losses.update(loss_mask)
 
         if self.cfg.MODEL.KEYPOINT_ON:

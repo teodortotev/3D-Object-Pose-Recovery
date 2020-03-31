@@ -27,12 +27,12 @@ except ImportError:
 
 
 def main():
-    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_07_FRCNN_pasc3d_obj_test")
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_27_MRCNN_pasc3d_carparts_test")
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_faster_rcnn_R_50_FPN_1x_MODIF.yaml",
+        default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_mask_rcnn_R_50_FPN_1x_carpart.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -40,7 +40,7 @@ def main():
     parser.add_argument(
         "--ckpt",
         help="The path to the checkpoint for test, default is the latest checkpoint.",
-        default='/home/teo/storage/Data/Models/car_combined/FastRCNN/model_final.pth',
+        default='/home/teo/storage/Code/3D-Object-Pose-Recovery/model_final.pth',
     )
     parser.add_argument(
         "opts",
@@ -102,6 +102,7 @@ def main():
         inference(
             model,
             data_loader_val,
+            writer,
             dataset_name=dataset_name,
             iou_types=iou_types,
             box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,

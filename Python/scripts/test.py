@@ -50,40 +50,39 @@ def resized_iou(inputs, preds, labels, n_classes, sizes, writer):
         l = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.NEAREST)(l)
         p = np.array(p)
         l = np.array(l)
-        p_color = add_colours(p, sizes[1][i].tolist(), sizes[0][i].tolist())
-        p_color = torch.as_tensor(p_color)
-        l_color = add_colours(l, sizes[1][i].tolist(), sizes[0][i].tolist())
-        l_color = torch.as_tensor(l_color)
-        # p = torch.as_tensor(p)
-        # l = torch.as_tensor(l)
+        # p_color = add_colours(p, sizes[1][i].tolist(), sizes[0][i].tolist())
+        # p_color = torch.as_tensor(p_color)
+        # l_color = add_colours(l, sizes[1][i].tolist(), sizes[0][i].tolist())
+        # l_color = torch.as_tensor(l_color)
+        p = torch.as_tensor(p)
+        l = torch.as_tensor(l)
 
         # # Calculate ious 
-        # ious.append(iou(p, l, n_classes))
+        ious.append(iou(p, l, n_classes))
 
         # Unnormalize and Resize images
-        image = inputs[i].cpu().numpy()
-        image[0] = (image[0]*std[0] + mean[0])*255
-        image[1] = (image[1]*std[1] + mean[1])*255
-        image[2] = (image[2]*std[2] + mean[2])*255
-        image = image.astype(np.uint8)
-        image = np.transpose(image,(1,2,0))
-        image = Image.fromarray(image, mode='RGB')
-        image = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.BILINEAR)(image)
-        image = np.array(image)
-        image = np.transpose(image,(2,0,1))
+        # image = inputs[i].cpu().numpy()
+        # image[0] = (image[0]*std[0] + mean[0])*255
+        # image[1] = (image[1]*std[1] + mean[1])*255
+        # image[2] = (image[2]*std[2] + mean[2])*255
+        # image = image.astype(np.uint8)
+        # image = np.transpose(image,(1,2,0))
+        # image = Image.fromarray(image, mode='RGB')
+        # image = tf.Resize(size=(sizes[1][i].tolist(), sizes[0][i].tolist()), interpolation=Image.BILINEAR)(image)
+        # image = np.array(image)
+        # image = np.transpose(image,(2,0,1))
 
         # Display images and masks in the batch
-        writer.add_image('image', image, i)
-        writer.add_image('pred', p_color, i)
-        writer.add_image('target', l_color, i)
-           
-    exit()       
+        # writer.add_image('image', image, i)
+        # writer.add_image('pred', p_color, i)
+        # writer.add_image('target', l_color, i)
+
     return sum(ious)/len(preds)
 
 def main():
     since = time.time()  # Record start time
 
-    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3_29_01_20_13_38_test_pascal')
+    writer = SummaryWriter(logdir='/home/teo/storage/Code/name/FCN-128.32.150-test')
 
     print('-' * 50)
     print('| Loading model file %s...' % final_model_file)
@@ -137,6 +136,7 @@ def main():
 
     with torch.no_grad():  # Disable gradient calculations
         for iter, (inputs, labels, indices, im_names, msk_names, sizes) in enumerate(test_loader):
+            print(iter)
             inputs = inputs.to(args.device, dtype=torch.float)  # Send images to device
             labels = labels.to(args.device)  # Send labels to device
             labels = labels.squeeze(1)
@@ -210,15 +210,15 @@ if __name__ == '__main__':
 
     # Parser for input arguments
     parser = argparse.ArgumentParser(description='Test a model with PyTorch')
-    parser.add_argument('--image_dir',  '-im',  type=str, default='/home/teo/storage/Data/Images/car_pascal', help="Specify image directory")
-    parser.add_argument('--mask_dir',   '-ma',  type=str, default='/home/teo/storage/Data/Masks/car_pascal',  help="Specify mask directory")
-    parser.add_argument('--model_dir',  '-md',  type=str, default='/home/teo/storage/Data/Models/car_pascal', help='Specify model directory.')
-    parser.add_argument('--pred-dir',   '-pd',  type=str, default='/home/teo/storage/Data/Predictions/car_pascal', help='Specify prediction directory')
+    parser.add_argument('--image_dir',  '-im',  type=str, default='/home/teo/storage/Data/Images/car_combined', help="Specify image directory")
+    parser.add_argument('--mask_dir',   '-ma',  type=str, default='/home/teo/storage/Data/Masks_old/car_combined',  help="Specify mask directory")
+    parser.add_argument('--model_dir',  '-md',  type=str, default='/home/teo/storage/Data/Models/car_combined', help='Specify model directory.')
+    parser.add_argument('--pred-dir',   '-pd',  type=str, default='/home/teo/storage/Data/Predictions/car_combined', help='Specify prediction directory')
     parser.add_argument('--size',        '-s',  type=int, default='128',   help='Specify image resize.')
-    parser.add_argument('--model',      '-m',   type=str, default='final_0.26573397718108394_comb_128',  help='Specify the model type to test. Default: ResNet')
-    parser.add_argument('--model_name', '-mn',  type=str, default='DeepLab101',  help='Specify the exact model name to test. Default: final_0.931575')
-    parser.add_argument('--batch_size', '-b',   type=int, default=32,         help='Specify the batch size. Default: 16')
-    parser.add_argument('--device',     '-d',   type=str, default='cuda:0',  help='Specify the device to be used. Default: cuda:0')
+    parser.add_argument('--model',      '-m',   type=str, default='final_0.6675080612460675_comb_128',  help='Specify the model type to test. Default: ResNet')
+    parser.add_argument('--model_name', '-mn',  type=str, default='FCN101',  help='Specify the exact model name to test. Default: final_0.931575')
+    parser.add_argument('--batch_size', '-b',   type=int, default=64,         help='Specify the batch size. Default: 16')
+    parser.add_argument('--device',     '-d',   type=str, default='cuda:1',  help='Specify the device to be used. Default: cuda:0')
     parser.add_argument('--num_classes', '-nc', type=int, default=9)
     parser.add_argument('--num_workers', '-j',  type=int, default=8,         help='Specify the number of processes to load data. Default: 8')
     args = parser.parse_args()

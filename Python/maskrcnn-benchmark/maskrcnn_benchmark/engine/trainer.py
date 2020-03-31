@@ -8,7 +8,7 @@ import torch
 import torch.distributed as dist
 from tqdm import tqdm
 import numpy as np
-import skimage
+from skimage import draw as Draw
 
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.utils.comm import get_world_size, synchronize
@@ -20,7 +20,7 @@ from apex import amp
 def rectangle_perimeter(x1, y1, width, height, shape=None, clip=False):
     rr, cc = [x1, x1 + width, x1 + width, x1], [y1, y1, y1 + height, y1 + height]
 
-    return skimage.draw.polygon_perimeter(rr, cc, shape=shape, clip=clip)
+    return Draw.polygon_perimeter(rr, cc, shape=shape, clip=clip)
 
 def reduce_loss_dict(loss_dict):
     """
@@ -100,35 +100,53 @@ def do_train(
 
         optimizer.zero_grad()
 
-        # # Display images
-        # image = images.tensors[0].cpu().numpy()
-        # means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
-        # means[0] = 102.9801
-        # means[1] = 115.9465
-        # means[2] = 122.7717
-        # image = image + means
-        # image = image[[2, 1, 0]].astype(np.uint8)
+        # Add images every 100 iterations
+        if iteration % 20 == 0:
+            # Display images
+            image = images.tensors[0].cpu().numpy()
+            means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
+            means[0] = 102.9801
+            means[1] = 115.9465
+            means[2] = 122.7717
+            image = image + means
+            image = image[[2, 1, 0]].astype(np.uint8)
 
-        # writer.add_image('input image', image, iteration)
+            writer.add_image('input image', image, iteration)
 
-        # for b in range(len(targets[0].bbox)):
-        #     box = targets[0].bbox[b]
-        #     x1 = np.around(box[0].cpu().numpy())
-        #     y1 = np.around(box[1].cpu().numpy())
-        #     x2 = np.around(box[2].cpu().numpy())
-        #     y2 = np.around(box[3].cpu().numpy())
-        #     rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
-        #     image[:, rr, cc] = 255
+            for b in range(len(targets[0].bbox)):
+                box = targets[0].bbox[b]
+                x1 = np.around(box[0].cpu().numpy())
+                y1 = np.around(box[1].cpu().numpy())
+                x2 = np.around(box[2].cpu().numpy())
+                y2 = np.around(box[3].cpu().numpy())
+                rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
+                image[:, rr, cc] = 255
 
-        # writer.add_image('target boxes', image, iteration)
+            writer.add_image('target boxes', image, iteration)
 
-        # # Display Losses
-        # writer.add_scalar('loss', meters.loss.median, iteration)
-        # writer.add_scalar('loss_classifier', loss_dict_reduced['loss_classifier'].item(), iteration)
-        # writer.add_scalar('loss_box_reg', loss_dict_reduced['loss_box_reg'].item(), iteration)
-        # writer.add_scalar('loss_objectness', loss_dict_reduced['loss_objectness'].item(), iteration)
-        # writer.add_scalar('loss_rpn_box_reg', loss_dict_reduced['loss_rpn_box_reg'].item(), iteration)
-        # writer.add_scalar('lr', optimizer.param_groups[0]['lr'], iteration)
+            # Display masks
+            masks = targets[0].get_field('masks')[0]
+            masks = masks.get_mask_tensor()
+            combined_mask = masks[0, :, :]
+            for i in range(1,8):
+                combined_mask = combined_mask | masks[i, :, :]
+            writer.add_image('mask', combined_mask.unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 2', masks[1, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 3', masks[2, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 4', masks[3, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 5', masks[4, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 6', masks[5, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 7', masks[6, :, :].unsqueeze(0)*255, iteration)
+            # writer.add_image('single part 8', masks[7, :, :].unsqueeze(0)*255, iteration)
+
+            # Display Losses
+            writer.add_scalar('loss', meters.loss.median, iteration)
+            writer.add_scalar('loss_classifier', loss_dict_reduced['loss_classifier'].item(), iteration)
+            writer.add_scalar('loss_box_reg', loss_dict_reduced['loss_box_reg'].item(), iteration)
+            writer.add_scalar('loss_objectness', loss_dict_reduced['loss_objectness'].item(), iteration)
+            writer.add_scalar('loss_rpn_box_reg', loss_dict_reduced['loss_rpn_box_reg'].item(), iteration)
+            writer.add_scalar('loss_mask', loss_dict_reduced['loss_mask'].item(), iteration)
+            writer.add_scalar('lr', optimizer.param_groups[0]['lr'], iteration)
 
 
         # Note: If mixed precision is not used, this ends up doing nothing

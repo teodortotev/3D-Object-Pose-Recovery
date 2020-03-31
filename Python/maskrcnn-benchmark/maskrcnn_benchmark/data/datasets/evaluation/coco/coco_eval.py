@@ -74,7 +74,7 @@ def prepare_for_coco_detection(predictions, dataset):
         original_id = dataset.id_to_img_map[image_id]
         if len(prediction) == 0:
             continue
-
+        
         img_info = dataset.get_img_info(image_id)
         image_width = img_info["width"]
         image_height = img_info["height"]
@@ -121,8 +121,9 @@ def prepare_for_coco_segmentation(predictions, dataset):
         # t = time.time()
         # Masker is necessary only if masks haven't been already resized.
         if list(masks.shape[-2:]) != [image_height, image_width]:
-            masks = masker(masks.expand(1, -1, -1, -1, -1), prediction)
+            masks, unmodif_masks = masker(masks.expand(1, -1, -1, -1, -1), prediction)
             masks = masks[0]
+            unmodif_masks = unmodif_masks[0]
         # logger.info('Time mask: {}'.format(time.time() - t))
         # prediction = prediction.convert('xywh')
 
@@ -132,12 +133,23 @@ def prepare_for_coco_segmentation(predictions, dataset):
 
         # rles = prediction.get_field('mask')
 
-        rles = [
-            mask_util.encode(np.array(mask[0, :, :, np.newaxis], order="F"))[0]
-            for mask in masks
-        ]
+        rles = []
+        for mask in masks:
+            rle  = [] 
+            mask = mask[0]
+            for a in range(mask.shape[0]):
+                rle.append(mask_util.encode(np.array(mask[a, :, :, np.newaxis], order="F"))[0])
+            rles.append(rle)
+
+        # Old rle encoding
+        # rles = [
+        #     mask_util.encode(np.array(mask[0, :, :, np.newaxis], order="F"))[0]
+        #     for mask in masks
+        # ]
+
         for rle in rles:
-            rle["counts"] = rle["counts"].decode("utf-8")
+            for r in rle:
+                r["counts"] = r["counts"].decode("utf-8")
 
         mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
 

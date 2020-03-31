@@ -1,14 +1,14 @@
 AMP_VERBOSE: false
 DATALOADER:
   ASPECT_RATIO_GROUPING: true
-  NUM_WORKERS: 4
+  NUM_WORKERS: 8
   SIZE_DIVISIBILITY: 32
 DATASETS:
   TEST:
-  - pasc3d_test__subset_objparts_cocostyle
+  - pasc3d_test_carparts_cocostyle
   TRAIN:
-  - pasc3d_train_subset_objparts_cocostyle
-  - pasc3d_val_subset_objparts_cocostyle
+  - pasc3d_train_carparts_cocostyle
+  - pasc3d_val_carparts_cocostyle
 DTYPE: float32
 INPUT:
   BRIGHTNESS: 0.0

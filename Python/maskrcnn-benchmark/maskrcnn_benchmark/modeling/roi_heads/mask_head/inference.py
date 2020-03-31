@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import numpy as np
 import torch
+import copy
 from torch import nn
 from maskrcnn_benchmark.layers.misc import interpolate
 
@@ -37,14 +38,17 @@ class MaskPostProcessor(nn.Module):
         """
         mask_prob = x.sigmoid()
 
-        # select masks coresponding to the predicted classes
         num_masks = x.shape[0]
+
         labels = [bbox.get_field("labels") for bbox in boxes]
         labels = torch.cat(labels)
+
         index = torch.arange(num_masks, device=labels.device)
-        mask_prob = mask_prob[index, labels][:, None]
+
+        # mask_prob = mask_prob[index, labels][:, None]
 
         boxes_per_image = [len(box) for box in boxes]
+
         mask_prob = mask_prob.split(boxes_per_image, dim=0)
 
         if self.masker:
@@ -57,9 +61,8 @@ class MaskPostProcessor(nn.Module):
                 bbox.add_field(field, box.get_field(field))
             bbox.add_field("mask", prob)
             results.append(bbox)
-
+            
         return results
-
 
 class MaskPostProcessorCOCOFormat(MaskPostProcessor):
     """
@@ -116,47 +119,71 @@ def expand_masks(mask, padding):
     return padded_mask, scale
 
 
-def paste_mask_in_image(mask, box, im_h, im_w, thresh=0.5, padding=1):
+def paste_mask_in_image(masks, box, im_h, im_w, thresh=0.5, padding=1):
     # Need to work on the CPU, where fp16 isn't supported - cast to float to avoid this
-    mask = mask.float()
-    box = box.float()
 
-    padded_mask, scale = expand_masks(mask[None], padding=padding)
-    mask = padded_mask[0, 0]
-    box = expand_boxes(box[None], scale)[0]
-    box = box.to(dtype=torch.int32)
+    mask_list = []
+    unmodif_mask_list = []
 
-    TO_REMOVE = 1
-    w = int(box[2] - box[0] + TO_REMOVE)
-    h = int(box[3] - box[1] + TO_REMOVE)
-    w = max(w, 1)
-    h = max(h, 1)
+    for i in range(masks.shape[0]):
 
-    # Set shape to [batchxCxHxW]
-    mask = mask.expand((1, 1, -1, -1))
+        mask = masks[i]
+                           
+        mask = mask.float()
+        box = box.float()
 
-    # Resize mask
-    mask = mask.to(torch.float32)
-    mask = interpolate(mask, size=(h, w), mode='bilinear', align_corners=False)
-    mask = mask[0][0]
+        padded_mask, scale = expand_masks(mask[None], padding=padding)
+        mask = padded_mask[0, 0]
+        box = expand_boxes(box[None], scale)[0]
+        box = box.to(dtype=torch.int32)
 
-    if thresh >= 0:
-        mask = mask > thresh
-    else:
-        # for visualization and debugging, we also
-        # allow it to return an unmodified mask
-        mask = (mask * 255).to(torch.bool)
+        TO_REMOVE = 1
+        w = int(box[2] - box[0] + TO_REMOVE)
+        h = int(box[3] - box[1] + TO_REMOVE)
+        w = max(w, 1)
+        h = max(h, 1)
 
-    im_mask = torch.zeros((im_h, im_w), dtype=torch.bool)
-    x_0 = max(box[0], 0)
-    x_1 = min(box[2] + 1, im_w)
-    y_0 = max(box[1], 0)
-    y_1 = min(box[3] + 1, im_h)
+        # Set shape to [batchxCxHxW]
+        mask = mask.expand((1, 1, -1, -1))
 
-    im_mask[y_0:y_1, x_0:x_1] = mask[
-        (y_0 - box[1]) : (y_1 - box[1]), (x_0 - box[0]) : (x_1 - box[0])
-    ]
-    return im_mask
+        # Resize mask
+        mask = mask.to(torch.float32)
+        mask = interpolate(mask, size=(h, w), mode='bilinear', align_corners=False)
+        mask = mask[0][0]
+
+        if thresh >= 0:
+            unmodified_mask = copy.deepcopy(mask)
+            mask = mask > thresh
+        else:
+            # for visualization and debugging, we also
+            # allow it to return an unmodified mask
+            mask = (mask * 255).to(torch.bool)
+
+        im_mask = torch.zeros((im_h, im_w), dtype=torch.bool)
+        im_unmodif_mask = im_mask = torch.zeros((im_h, im_w), dtype=torch.float)
+        x_0 = max(box[0], 0)
+        x_1 = min(box[2] + 1, im_w)
+        y_0 = max(box[1], 0)
+        y_1 = min(box[3] + 1, im_h)
+
+        im_mask[y_0:y_1, x_0:x_1] = mask[
+            (y_0 - box[1]) : (y_1 - box[1]), (x_0 - box[0]) : (x_1 - box[0])
+        ]
+
+        im_unmodif_mask[y_0:y_1, x_0:x_1] = unmodified_mask[
+            (y_0 - box[1]) : (y_1 - box[1]), (x_0 - box[0]) : (x_1 - box[0])
+        ]
+
+        unmodif_mask_list.append(im_unmodif_mask)
+        mask_list.append(im_mask)
+    
+    im_masks = torch.zeros((masks.shape[0], im_h, im_w), dtype=torch.bool)
+    im_unmodif_masks = torch.zeros((masks.shape[0], im_h, im_w), dtype=torch.float)
+    for a in range(len(mask_list)):
+        im_masks[a] = mask_list[a]
+        im_unmodif_masks[a] = unmodif_mask_list[a]
+
+    return im_masks, im_unmodif_masks
 
 
 class Masker(object):
@@ -172,15 +199,24 @@ class Masker(object):
     def forward_single_image(self, masks, boxes):
         boxes = boxes.convert("xyxy")
         im_w, im_h = boxes.size
-        res = [
-            paste_mask_in_image(mask[0], box, im_h, im_w, self.threshold, self.padding)
+        out = [
+            paste_mask_in_image(mask, box, im_h, im_w, self.threshold, self.padding)
             for mask, box in zip(masks, boxes.bbox)
         ]
+
+        res = []
+        unmodif_res =[]
+        for a in range(len(out)):
+                res.append(out[a][0])
+                unmodif_res.append(out[a][1])
+        
         if len(res) > 0:
             res = torch.stack(res, dim=0)[:, None]
+            unmodif_res = torch.stack(unmodif_res, dim=0)[:, None]
         else:
             res = masks.new_empty((0, 1, masks.shape[-2], masks.shape[-1]))
-        return res
+            unmodif_res = masks.new_empty((0, 1, masks.shape[-2], masks.shape[-1]))
+        return res, unmodif_res
 
     def __call__(self, masks, boxes):
         if isinstance(boxes, BoxList):
@@ -192,11 +228,14 @@ class Masker(object):
         # TODO:  Is this JIT compatible?
         # If not we should make it compatible.
         results = []
+        unmodif_results = []
         for mask, box in zip(masks, boxes):
             assert mask.shape[0] == len(box), "Number of objects should be the same."
-            result = self.forward_single_image(mask, box)
+            result, unmodif_result = self.forward_single_image(mask, box)
             results.append(result)
-        return results
+            unmodif_results.append(unmodif_result)
+
+        return results, unmodif_results
 
 
 def make_roi_mask_post_processor(cfg):

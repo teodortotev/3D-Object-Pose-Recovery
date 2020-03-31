@@ -333,67 +333,71 @@ class COCO:
     #         for ann in anns:
     #             print(ann['caption'])
 
-    ## TODO: The way results are written should be changed too
-    # def loadRes(self, resFile):
-    #     """
-    #     Load result file and return a result api object.
-    #     :param   resFile (str)     : file name of result file
-    #     :return: res (obj)         : result api object
-    #     """
-    #     res = COCO()
-    #     res.dataset['images'] = [img for img in self.dataset['images']]
+    def loadRes(self, resFile):
+        """
+        Load result file and return a result api object.
+        :param   resFile (str)     : file name of result file
+        :return: res (obj)         : result api object
+        """
+        res = COCO()
+        res.dataset['images'] = [img for img in self.dataset['images']]
 
-    #     print('Loading and preparing results...')
-    #     tic = time.time()
-    #     if type(resFile) == str or (PYTHON_VERSION == 2 and type(resFile) == unicode):
-    #         anns = json.load(open(resFile))
-    #     elif type(resFile) == np.ndarray:
-    #         anns = self.loadNumpyAnnotations(resFile)
-    #     else:
-    #         anns = resFile
-    #     assert type(anns) == list, 'results in not an array of objects'
-    #     annsImgIds = [ann['image_id'] for ann in anns]
-    #     assert set(annsImgIds) == (set(annsImgIds) & set(self.getImgIds())), \
-    #            'Results do not correspond to current coco set'
-    #     if 'caption' in anns[0]:
-    #         imgIds = set([img['id'] for img in res.dataset['images']]) & set([ann['image_id'] for ann in anns])
-    #         res.dataset['images'] = [img for img in res.dataset['images'] if img['id'] in imgIds]
-    #         for id, ann in enumerate(anns):
-    #             ann['id'] = id+1
-    #     elif 'bbox' in anns[0] and not anns[0]['bbox'] == []:
-    #         res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
-    #         for id, ann in enumerate(anns):
-    #             bb = ann['bbox']
-    #             x1, x2, y1, y2 = [bb[0], bb[0]+bb[2], bb[1], bb[1]+bb[3]]
-    #             if not 'segmentation' in ann:
-    #                 ann['segmentation'] = [[x1, y1, x1, y2, x2, y2, x2, y1]]
-    #             ann['area'] = bb[2]*bb[3]
-    #             ann['id'] = id+1
-    #             ann['iscrowd'] = 0
-    #     elif 'segmentation' in anns[0]:
-    #         res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
-    #         for id, ann in enumerate(anns):
-    #             # now only support compressed RLE format as segmentation results
-    #             ann['area'] = maskUtils.area(ann['segmentation'])
-    #             if not 'bbox' in ann:
-    #                 ann['bbox'] = maskUtils.toBbox(ann['segmentation'])
-    #             ann['id'] = id+1
-    #             ann['iscrowd'] = 0
-    #     elif 'keypoints' in anns[0]:
-    #         res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
-    #         for id, ann in enumerate(anns):
-    #             s = ann['keypoints']
-    #             x = s[0::3]
-    #             y = s[1::3]
-    #             x0,x1,y0,y1 = np.min(x), np.max(x), np.min(y), np.max(y)
-    #             ann['area'] = (x1-x0)*(y1-y0)
-    #             ann['id'] = id + 1
-    #             ann['bbox'] = [x0,y0,x1-x0,y1-y0]
-    #     print('DONE (t={:0.2f}s)'.format(time.time()- tic))
+        print('Loading and preparing results...')
+        tic = time.time()
+        if type(resFile) == str or (PYTHON_VERSION == 2 and type(resFile) == unicode):
+            anns = json.load(open(resFile))
+        elif type(resFile) == np.ndarray:
+            anns = self.loadNumpyAnnotations(resFile)
+        else:
+            anns = resFile
+        assert type(anns) == list, 'results in not an array of objects'
+        annsImgIds = [ann['image_id'] for ann in anns]
+        assert set(annsImgIds) == (set(annsImgIds) & set(self.getImgIds())), \
+               'Results do not correspond to current coco set'
 
-    #     res.dataset['annotations'] = anns
-    #     res.createIndex()
-    #     return res
+        if 'caption' in anns[0]:
+            imgIds = set([img['id'] for img in res.dataset['images']]) & set([ann['image_id'] for ann in anns])
+            res.dataset['images'] = [img for img in res.dataset['images'] if img['id'] in imgIds]
+            for id, ann in enumerate(anns):
+                ann['id'] = id+1
+        elif 'bbox' in anns[0] and not anns[0]['bbox'] == []:
+            res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
+            for id, ann in enumerate(anns):
+                bb = ann['bbox']
+                x1, x2, y1, y2 = [bb[0], bb[0]+bb[2], bb[1], bb[1]+bb[3]]
+                if not 'segmentation' in ann:
+                    ann['segmentation'] = [[x1, y1, x1, y2, x2, y2, x2, y1]]
+                ann['area'] = bb[2]*bb[3]
+                ann['id'] = id+1
+                ann['iscrowd'] = 0
+        elif 'segmentation' in anns[0]:
+            res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
+            for id, ann in enumerate(anns):
+                for segment in ann['segmentation']:
+                    segment['area'] = maskUtils.area(segment)
+                    if not 'bbox' in ann:
+                        segment['bbox'] = maskUtils.toBbox(segment)
+                # now only support compressed RLE format as segmentation results
+                # ann['area'] = maskUtils.area(ann['segmentation'])
+                # if not 'bbox' in ann:
+                #     ann['bbox'] = maskUtils.toBbox(ann['segmentation'])
+                ann['id'] = id+1
+                ann['iscrowd'] = 0
+        elif 'keypoints' in anns[0]:
+            res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
+            for id, ann in enumerate(anns):
+                s = ann['keypoints']
+                x = s[0::3]
+                y = s[1::3]
+                x0,x1,y0,y1 = np.min(x), np.max(x), np.min(y), np.max(y)
+                ann['area'] = (x1-x0)*(y1-y0)
+                ann['id'] = id + 1
+                ann['bbox'] = [x0,y0,x1-x0,y1-y0]
+        print('DONE (t={:0.2f}s)'.format(time.time()- tic))
+
+        res.dataset['annotations'] = anns
+        res.createIndex()
+        return res
 
     # This will not be needed 
     # def download(self, tarDir = None, imgIds = [] ):
@@ -444,27 +448,32 @@ class COCO:
     #             }]
     #     return ann
 
-    # This will probably be unnecessary
-    # def annToRLE(self, ann):
-    #     """
-    #     Convert annotation which can be polygons, uncompressed RLE to RLE.
-    #     :return: binary mask (numpy 2D array)
-    #     """
-    #     t = self.imgs[ann['image_id']]
-    #     h, w = t['height'], t['width']
-    #     segm = ann['segmentation']
-    #     if type(segm) == list:
-    #         # polygon -- a single object might consist of multiple parts
-    #         # we merge all parts into one mask rle code
-    #         rles = maskUtils.frPyObjects(segm, h, w)
-    #         rle = maskUtils.merge(rles)
-    #     elif type(segm['counts']) == list:
-    #         # uncompressed RLE
-    #         rle = maskUtils.frPyObjects(segm, h, w)
-    #     else:
-    #         # rle
-    #         rle = ann['segmentation']
-    #     return rle
+    
+    def annToRLE(self, ann, img_id):
+        """
+        Convert annotation which can be polygons, uncompressed RLE to RLE.
+        :return: binary mask (numpy 2D array)
+        """
+
+        t = self.imgs[img_id]
+        h, w = t['height'], t['width']
+        segm = ann
+
+        if type(segm) == list:
+            # polygon -- a single object might consist of multiple parts
+            # we merge all parts into one mask rle code
+            if len(segm) == 0:
+                rle = []
+            else:
+                rles = maskUtils.frPyObjects(segm, h, w)
+                rle = maskUtils.merge(rles)
+        elif type(segm['counts']) == list:
+            # uncompressed RLE
+            rle = maskUtils.frPyObjects(segm, h, w)
+        else:
+            # rle
+            rle = segm
+        return rle
 
     # This will not be needed
     # def annToMask(self, ann):

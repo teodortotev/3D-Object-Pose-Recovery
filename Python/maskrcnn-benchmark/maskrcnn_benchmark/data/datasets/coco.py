@@ -101,7 +101,6 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
             for i in range(len(segmentations)):
                 mask = [obj["segment"] for obj in segmentations[i]]
                 mask = SegmentationMask(mask, img.size, mode='poly')
-                mask = mask.convert(mode='mask')
                 masks.append(mask)
 
             # Merge all masks belonging to the same part class

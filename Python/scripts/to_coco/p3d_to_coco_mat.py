@@ -74,6 +74,7 @@ def read_mat(mat, img_id, an_id):
             if os.path.exists(path):
                 mask = sio.loadmat(path)
                 mask = mask['single_mask']
+                mask = np.transpose(mask)
                 segmentation_list = create_segmentation_list(mask, 8)
 
                 annotation = {
@@ -121,8 +122,8 @@ def main():
         file_names = [os.path.splitext(os.path.basename(x))[0] for x in img_list]
         anno_list = [os.path.join(args.anno_dir, x + ".mat") for x in file_names]
 
-        # for i in tqdm(range(len(img_list))):
-        for i in tqdm(range(15)):
+        for i in tqdm(range(len(img_list))):
+        # for i in tqdm(range(15)):
             img_desc = create_img_desc(img_list[i], i)
             img_annotations, an_id = read_mat(anno_list[i], i, an_id)
             annotations.extend(img_annotations)
@@ -172,13 +173,13 @@ def main():
             "annotations": annotations
         }
 
-        out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_subset_anno.json'
-        with open(out_file, 'w') as outfile:
-            json.dump(annotation_file, outfile, indent=4)
-
-        # out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_anno.json'
+        # out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_subset_anno.json'
         # with open(out_file, 'w') as outfile:
         #     json.dump(annotation_file, outfile, indent=4)
+
+        out_file = os.path.join(args.save_dir) + '/' + str(phase) + '_anno.json'
+        with open(out_file, 'w') as outfile:
+            json.dump(annotation_file, outfile, indent=4)
 
 if __name__ == '__main__':
 

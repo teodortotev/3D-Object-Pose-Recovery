@@ -31,12 +31,14 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     RESOLUTION: 28
     SHARE_BOX_FEATURE_EXTRACTOR: False
+    NUM_CLASSES: 8
   MASK_ON: True
 DATASETS:
-  TRAIN: ("pasc3d_train_subset_objparts_cocostyle", "pasc3d_val_subset_objparts_cocostyle")
-  TEST: ("pasc3d_test__subset_objparts_cocostyle",)
+  TRAIN: ("pasc3d_train_carparts_cocostyle", "pasc3d_val_carparts_cocostyle")
+  TEST: ("pasc3d_test_carparts_cocostyle",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
+  NUM_WORKERS: 8
 SOLVER:
   BASE_LR: 0.00125
   WEIGHT_DECAY: 0.0001
@@ -45,3 +47,4 @@ SOLVER:
   IMS_PER_BATCH: 1
 TEST:
   IMS_PER_BATCH: 1
+OUTPUT_DIR: '/home/teo/storage/Data/Models/car_combined/MaskRCNN/'

@@ -82,9 +82,6 @@ def train(cfg, local_rank, distributed, writer):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
-    print(model)
-    print('Printing from /home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/tools/train_net.py')
-
     do_train(
         cfg,
         model,
@@ -138,7 +135,7 @@ def run_test(cfg, model, distributed):
 
 def main():
 
-    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_11_MRCNN_pasc3d_objparts_train")
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/candelete")
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(

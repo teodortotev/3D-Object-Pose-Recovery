@@ -76,10 +76,10 @@ class COCOeval:
         self._paramsEval = {}               # parameters for evaluation
         self.stats = []                     # result summarization
         self.ious = {}                      # ious between all gts and dts
+        self.parts = []
         if not cocoGt is None:
             self.params.imgIds = sorted(cocoGt.getImgIds())
             self.params.catIds = sorted(cocoGt.getCatIds())
-
 
     def _prepare(self):
         '''
@@ -88,9 +88,26 @@ class COCOeval:
         '''
         def _toMask(anns, coco):
             # modify ann['segmentation'] by reference
+
+            # For ground truth dataset pass only classes of the same type and let it merge them
             for ann in anns:
-                rle = coco.annToRLE(ann)
-                ann['segmentation'] = rle
+                if 'class' in ann['segmentation'][0]:
+                    segmentation_list = []
+                    for part in self.parts:
+                        part_segmentation_list = []
+                        for segment in ann['segmentation']:
+                            if segment['class'] == part:
+                                part_segmentation_list.append(segment['segment'][0])
+                        segmentation_list.append(part_segmentation_list)
+                    rles = [coco.annToRLE(segmentation_list[i], img_id=ann['image_id']) for i in range(len(segmentation_list))]
+                    ann['segmentation'] = rles
+                   
+
+            # for ann in anns:
+            #     for segment in ann['segmentation']:
+            #         rle = coco.annToRLE(ann)
+            #         ann['segmentation'] = rle
+
         p = self.params
         if p.useCats:
             gts=self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds, catIds=p.catIds))
@@ -101,7 +118,8 @@ class COCOeval:
 
         # convert ground truth to mask if iouType == 'segm'
         if p.iouType == 'segm':
-            _toMask(gts, self.cocoGt)
+            self.parts = self.cocoGt.getPartIds()
+            _toMask(gts, self.cocoGt) 
             _toMask(dts, self.cocoDt)
         # set ignore flag
         for gt in gts:
@@ -114,7 +132,7 @@ class COCOeval:
         for gt in gts:
             self._gts[gt['image_id'], gt['category_id']].append(gt)
         for dt in dts:
-            self._dts[dt['image_id'], dt['category_id']].append(dt)
+            self._dts[dt['image_id'], dt['category_id']].append(dt)    
         self.evalImgs = defaultdict(list)   # per-image per-category evaluation results
         self.eval     = {}                  # accumulated evaluation results
 
@@ -135,6 +153,7 @@ class COCOeval:
         if p.useCats:
             p.catIds = list(np.unique(p.catIds))
         p.maxDets = sorted(p.maxDets)
+
         self.params=p
 
         self._prepare()
@@ -145,6 +164,7 @@ class COCOeval:
             computeIoU = self.computeIoU
         elif p.iouType == 'keypoints':
             computeIoU = self.computeOks
+
         self.ious = {(imgId, catId): computeIoU(imgId, catId) \
                         for imgId in p.imgIds
                         for catId in catIds}
@@ -183,6 +203,33 @@ class COCOeval:
             d = [d['bbox'] for d in dt]
         else:
             raise Exception('unknown iouType for iou computation')
+
+        if p.iouType == 'segm':
+            if len(g) == 0 or len(d) == 0:
+                ious_array = []
+                return ious_array
+            else:
+                ious_array = np.zeros((len(d), len(g)))
+                for j in range(len(d)):
+                    for i in range(len(g)):
+                        gte = g[i]
+                        dte = d[j]
+                        p_ious = 0
+                        for part in self.parts:
+                            gtr = [gte[part-1]]
+                            dtr = [dte[part-1]]
+                            if not gtr[0]:
+                                p_ious += 0.3
+                            elif not dtr[0]:
+                                p_ious += 0
+                            else:
+                                # compute iou between each dt and gt region
+                                iscrowd = [int(o['iscrowd']) for o in gt]
+                                ious = maskUtils.iou(dtr,gtr,iscrowd)
+                                p_ious += ious
+                        p_ious = p_ious/len(self.parts)
+                        ious_array[j, i] = p_ious
+                return ious_array
 
         # compute iou between each dt and gt region
         iscrowd = [int(o['iscrowd']) for o in gt]
@@ -295,8 +342,24 @@ class COCOeval:
                     dtm[tind,dind]  = gt[m]['id']
                     gtm[tind,m]     = d['id']
         # set unmatched detections outside of area range to ignore
-        a = np.array([d['area']<aRng[0] or d['area']>aRng[1] for d in dt]).reshape((1, len(dt)))
-        dtIg = np.logical_or(dtIg, np.logical_and(dtm==0, np.repeat(a,T,0)))
+        if p.iouType == 'segm':
+            for d in dt:
+                min_a = 1000000000
+                max_a = 0
+                segm = d['segmentation']
+                for s in segm:
+                    if s['area'] > min_a:
+                        min_a = s['area']
+                    if s['area'] < max_a:
+                        max_a = s['area']
+                d['minarea'] = min_a
+                d['maxarea'] = max_a
+            a = np.array([d['minarea']<aRng[0] or d['maxarea']>aRng[1] for d in dt]).reshape((1, len(dt)))
+            dtIg = np.logical_or(dtIg, np.logical_and(dtm==0, np.repeat(a,T,0)))
+        else:
+            a = np.array([d['area']<aRng[0] or d['area']>aRng[1] for d in dt]).reshape((1, len(dt)))
+            dtIg = np.logical_or(dtIg, np.logical_and(dtm==0, np.repeat(a,T,0)))
+
         # store results for given image and category
         return {
                 'image_id':     imgId,

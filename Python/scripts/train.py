@@ -22,7 +22,7 @@ import torchvision.utils as vutils
 # ___contact__: tedi.totev97@gmail.com
 
 # Define a logger
-writer = SummaryWriter(logdir='/home/teo/storage/Code/name/candelete')
+writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3-128.32.150-inet')
 
 
 def initialize_model(model_name, num_classes):
@@ -97,11 +97,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
                 # Forward
                 # Get model outputs and calculate loss
 
-                print('hi')
-
                 outputs = model(inputs)
-                
-                print('after outputs')
 
                 loss = criterion(outputs['out'], labels.long())
 
@@ -121,25 +117,25 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
                 running_loss += loss.item() * inputs.size(0)
                 b_corrects = torch.sum(preds == labels.long())
                 running_corrects += b_corrects
-                b_pixacc = b_corrects.item()/(inputs.size(0)*args.size*args.size)
-                b_IOU = iou(preds.long(), labels.long(), args.num_classes)
+                # b_pixacc = b_corrects.item()/(inputs.size(0)*args.size*args.size)
+                # b_IOU = iou(preds.long(), labels.long(), args.num_classes)
 
                 # Report statistics if 'train'
-                if phase == 'train':
-                    writer.add_image('label', labels[0].unsqueeze(0)*30, iteration[phase])
-                    writer.add_image('pred', preds[0].unsqueeze(0)*30, iteration[phase])
+                # if phase == 'train':
+                #     writer.add_image('label', labels[0].unsqueeze(0)*30, iteration[phase])
+                #     writer.add_image('pred', preds[0].unsqueeze(0)*30, iteration[phase])
 
-                    writer.add_scalar(phase + 'batch_loss', loss.item(), iteration[phase])
-                    writer.add_scalar(phase + 'batch_pixacc', b_pixacc, iteration[phase])
-                    writer.add_scalar(phase + 'batch_IOU', b_IOU, iteration[phase])
+                #     writer.add_scalar(phase + 'batch_loss', loss.item(), iteration[phase])
+                #     writer.add_scalar(phase + 'batch_pixacc', b_pixacc, iteration[phase])
+                #     writer.add_scalar(phase + 'batch_IOU', b_IOU, iteration[phase])
 
-                    x = vutils.make_grid(inputs, normalize=True, scale_each=True)
-                    y = vutils.make_grid(labels.unsqueeze(1) * 30, normalize=False, scale_each=True)
-                    z = vutils.make_grid(preds.unsqueeze(1) * 30, normalize=False, scale_each=True)
+                #     x = vutils.make_grid(inputs, normalize=True, scale_each=True)
+                #     y = vutils.make_grid(labels.unsqueeze(1) * 30, normalize=False, scale_each=True)
+                #     z = vutils.make_grid(preds.unsqueeze(1) * 30, normalize=False, scale_each=True)
 
-                    writer.add_image(phase + 'batch_image', x, iteration[phase])
-                    writer.add_image(phase + 'batch_label', y, iteration[phase])
-                    writer.add_image(phase + 'batch_preds', z, iteration[phase])
+                #     writer.add_image(phase + 'batch_image', x, iteration[phase])
+                #     writer.add_image(phase + 'batch_label', y, iteration[phase])
+                #     writer.add_image(phase + 'batch_preds', z, iteration[phase])
 
                 iteration[phase] += 1
 
@@ -152,7 +148,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
             # Deep copy the model if the best
             if phase == 'val' and IOU > best_acc:
                 best_acc = IOU
-                torch.save(model, final_model_file + '_' + str(best_acc) + '_pascal_' + str(args.size))
+                torch.save(model.state_dict(), final_model_file + '_' + str(best_acc) + '_inet_' + str(args.size))
             if phase == 'val':
                 val_acc_history.append(IOU)
 
@@ -250,15 +246,15 @@ if __name__ == '__main__':
     # Define parser for input arguments
     parser = argparse.ArgumentParser(description='Train a segmentation network with PyTorch')
     parser.add_argument('--load',       '-l', type=int, default=0)
-    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_pascal')
-    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks_old/car_pascal')
-    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_pascal')
+    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_imagenet')
+    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks_old/car_imagenet')
+    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_imagenet')
     parser.add_argument('--size',       '-s' ,type=int, default=128)
     parser.add_argument('--num_classes','-nc',type=int, default=9)
     parser.add_argument('--model_name', '-mn',type=str, default='DeepLab101')
     parser.add_argument('--batch_size', '-b', type=int, default=32)
     parser.add_argument('--epochs',     '-e', type=int, default=150)
-    parser.add_argument('--device',      '-d',type=str, default='cuda:0')
+    parser.add_argument('--device',      '-d',type=str, default='cuda:1')
     parser.add_argument('--num_workers', '-j',type=int, default=8)
     parser.add_argument('--lr_start', '-lr',type=int, default=0.0007)
     parser.add_argument('--lr_power', '-lrp',type=float, default=0.9)
