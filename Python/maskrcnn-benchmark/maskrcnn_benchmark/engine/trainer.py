@@ -100,37 +100,37 @@ def do_train(
 
         optimizer.zero_grad()
 
-        # Add images every 100 iterations
-        if iteration % 20 == 0:
-            # Display images
-            image = images.tensors[0].cpu().numpy()
-            means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
-            means[0] = 102.9801
-            means[1] = 115.9465
-            means[2] = 122.7717
-            image = image + means
-            image = image[[2, 1, 0]].astype(np.uint8)
+        # # Add images every 100 iterations
+        if iteration % 100 == 0:
+        #     # Display images
+        #     image = images.tensors[0].cpu().numpy()
+        #     means = np.zeros((image.shape[0], image.shape[1], image.shape[2]))
+        #     means[0] = 102.9801
+        #     means[1] = 115.9465
+        #     means[2] = 122.7717
+        #     image = image + means
+        #     image = image[[2, 1, 0]].astype(np.uint8)
 
-            writer.add_image('input image', image, iteration)
+        #     writer.add_image('input image', image, iteration)
 
-            for b in range(len(targets[0].bbox)):
-                box = targets[0].bbox[b]
-                x1 = np.around(box[0].cpu().numpy())
-                y1 = np.around(box[1].cpu().numpy())
-                x2 = np.around(box[2].cpu().numpy())
-                y2 = np.around(box[3].cpu().numpy())
-                rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
-                image[:, rr, cc] = 255
+        #     for b in range(len(targets[0].bbox)):
+        #         box = targets[0].bbox[b]
+        #         x1 = np.around(box[0].cpu().numpy())
+        #         y1 = np.around(box[1].cpu().numpy())
+        #         x2 = np.around(box[2].cpu().numpy())
+        #         y2 = np.around(box[3].cpu().numpy())
+        #         rr, cc = rectangle_perimeter(y1, x1, y2-y1, x2-x1)
+        #         image[:, rr, cc] = 255
 
-            writer.add_image('target boxes', image, iteration)
+        #     writer.add_image('target boxes', image, iteration)
 
-            # Display masks
-            masks = targets[0].get_field('masks')[0]
-            masks = masks.get_mask_tensor()
-            combined_mask = masks[0, :, :]
-            for i in range(1,8):
-                combined_mask = combined_mask | masks[i, :, :]
-            writer.add_image('mask', combined_mask.unsqueeze(0)*255, iteration)
+        #     # Display masks
+        #     masks = targets[0].get_field('masks')[0]
+        #     masks = masks.get_mask_tensor()
+        #     combined_mask = masks[0, :, :]
+        #     for i in range(1,8):
+        #         combined_mask = combined_mask | masks[i, :, :]
+        #     writer.add_image('mask', combined_mask.unsqueeze(0)*255, iteration)
             # writer.add_image('single part 2', masks[1, :, :].unsqueeze(0)*255, iteration)
             # writer.add_image('single part 3', masks[2, :, :].unsqueeze(0)*255, iteration)
             # writer.add_image('single part 4', masks[3, :, :].unsqueeze(0)*255, iteration)

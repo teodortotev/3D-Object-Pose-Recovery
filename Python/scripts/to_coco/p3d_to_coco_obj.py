@@ -80,7 +80,7 @@ def main():
         anno_list = [os.path.join(args.anno_dir, x + ".mat") for x in file_names]
 
         # for i in tqdm(range(len(img_list))):
-        for i in tqdm(range(50)):
+        for i in tqdm(range(800,820)):
             img_desc = create_img_desc(img_list[i], i)
             img_annotations, an_id = read_mat(anno_list[i], i, an_id)
             annotations.extend(img_annotations)

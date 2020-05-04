@@ -189,6 +189,9 @@ class COCO:
         :param partIds (int array) : get parts for given part ids
         :return: ids (int array)   : integer array of part ids
         """
+        if not 'partcategories' in self.dataset.keys():
+            return []
+
         partNms = partNms if _isArrayLike(partNms) else [partNms]
         supNms = supNms if _isArrayLike(supNms) else [supNms]
         partIds = partIds if _isArrayLike(partIds) else [partIds]

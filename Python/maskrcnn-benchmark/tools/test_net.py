@@ -27,7 +27,7 @@ except ImportError:
 
 
 def main():
-    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/20_02_27_MRCNN_pasc3d_carparts_test")
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/candelete")
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
     parser.add_argument(
@@ -40,7 +40,7 @@ def main():
     parser.add_argument(
         "--ckpt",
         help="The path to the checkpoint for test, default is the latest checkpoint.",
-        default='/home/teo/storage/Code/3D-Object-Pose-Recovery/model_final.pth',
+        default='/home/teo/storage/Data/Models/car_combined/MaskRCNN/model_final_56.pth',
     )
     parser.add_argument(
         "opts",

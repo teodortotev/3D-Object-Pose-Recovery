@@ -36,7 +36,12 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
         cropped_mask = segmentation_mask.crop(proposal)
         scaled_mask = cropped_mask.resize((M, M))
         mask = scaled_mask.get_mask_tensor()
-        masks.append(mask)
+        new_mask = torch.zeros(mask.shape[0] + 1, mask.shape[1], mask.shape[2], dtype=torch.uint8)
+        for i in range(int(mask.shape[0])):
+            new_mask[i+1, :, :] = mask[i, :, :]
+            new_mask[0, :, :] = new_mask[0, :, :] | mask[i, :, :]
+        new_mask[0, :, :] = ~new_mask[0, :, :]
+        masks.append(new_mask)
     if len(masks) == 0:
         return torch.empty(0, dtype=torch.float32, device=device)
     return torch.stack(masks, dim=0).to(device, dtype=torch.float32)
@@ -92,7 +97,7 @@ class MaskRCNNLossComputation(object):
             segmentation_masks = matched_targets.get_field("masks")
             # segmentation_masks = segmentation_masks[positive_inds]
             segmentation_masks = [segmentation_masks[i] for i in positive_inds.cpu()]
-
+            
             positive_proposals = proposals_per_image[positive_inds]
 
             masks_per_image = project_masks_on_boxes(

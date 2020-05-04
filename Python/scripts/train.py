@@ -22,7 +22,7 @@ import torchvision.utils as vutils
 # ___contact__: tedi.totev97@gmail.com
 
 # Define a logger
-writer = SummaryWriter(logdir='/home/teo/storage/Code/name/DLV3-128.32.150-inet')
+writer = SummaryWriter(logdir='/home/teo/storage/Code/name/FCN-128.32.900-pascal-0.0001')
 
 
 def initialize_model(model_name, num_classes):
@@ -36,7 +36,7 @@ def initialize_model(model_name, num_classes):
         if model_name == 'DeepLab101':
             model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, progress=True, num_classes=num_classes, aux_loss=None)
 
-        pretrained_state_dict = torch.load("/home/teo/storage/Data/pretrained_weight_DeepLab101")
+        pretrained_state_dict = torch.load("/home/teo/storage/Data/pretrained_weight")
         model.load_state_dict(pretrained_state_dict, strict=False)
 
         for param in model.parameters():
@@ -146,27 +146,27 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs):
             IOU = iou(stor_prd, stor_lbl, args.num_classes)
 
             # Deep copy the model if the best
-            if phase == 'val' and IOU > best_acc:
+            if phase == 'val' and IOU > best_acc and IOU > 0.3:
                 best_acc = IOU
-                torch.save(model.state_dict(), final_model_file + '_' + str(best_acc) + '_inet_' + str(args.size))
+                torch.save(model.state_dict(), final_model_file + '_' + str(best_acc) + '_pascal_' + str(args.size) + '_0.0001_900')
             if phase == 'val':
                 val_acc_history.append(IOU)
 
             print('{} Loss: {:.4f} PixAcc: {:.4f} mIoU {:.4f}'.format(phase, epoch_loss, epoch_pixacc, IOU))
             print('Elapsed Time: {:.0f} minutes {:.0f} seconds '.format((time.time() - since) // 60, (time.time() - since) % 60))
 
-            # Write to TensorboardX
-            writer.add_scalar(phase + '_loss', epoch_loss, epoch)
-            writer.add_scalar(phase + '_pixacc', epoch_pixacc, epoch)
-            writer.add_scalar(phase + '_IOU', IOU, epoch)
+            # # Write to TensorboardX
+            # writer.add_scalar(phase + '_loss', epoch_loss, epoch)
+            # writer.add_scalar(phase + '_pixacc', epoch_pixacc, epoch)
+            # writer.add_scalar(phase + '_IOU', IOU, epoch)
 
-            x = vutils.make_grid(inputs, normalize=True, scale_each=True)
-            y = vutils.make_grid(labels.unsqueeze(1)*30, normalize=False, scale_each=True)
-            z = vutils.make_grid(preds.unsqueeze(1)*30, normalize=False, scale_each=True)
+            # x = vutils.make_grid(inputs, normalize=True, scale_each=True)
+            # y = vutils.make_grid(labels.unsqueeze(1)*30, normalize=False, scale_each=True)
+            # z = vutils.make_grid(preds.unsqueeze(1)*30, normalize=False, scale_each=True)
 
-            writer.add_image(phase + '_image', x, epoch)
-            writer.add_image(phase + '_label', y, epoch)
-            writer.add_image(phase + '_preds', z, epoch)
+            # writer.add_image(phase + '_image', x, epoch)
+            # writer.add_image(phase + '_label', y, epoch)
+            # writer.add_image(phase + '_preds', z, epoch)
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
@@ -246,17 +246,17 @@ if __name__ == '__main__':
     # Define parser for input arguments
     parser = argparse.ArgumentParser(description='Train a segmentation network with PyTorch')
     parser.add_argument('--load',       '-l', type=int, default=0)
-    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_imagenet')
-    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks_old/car_imagenet')
-    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_imagenet')
+    parser.add_argument('--image_dir',  '-im',type=str, default='/home/teo/storage/Data/Images/car_pascal')
+    parser.add_argument('--mask_dir',   '-ma',type=str, default='/home/teo/storage/Data/Masks_old/car_pascal')
+    parser.add_argument('--model_dir',  '-mo',type=str, default='/home/teo/storage/Data/Models/car_pascal')
     parser.add_argument('--size',       '-s' ,type=int, default=128)
     parser.add_argument('--num_classes','-nc',type=int, default=9)
-    parser.add_argument('--model_name', '-mn',type=str, default='DeepLab101')
+    parser.add_argument('--model_name', '-mn',type=str, default='FCN101')
     parser.add_argument('--batch_size', '-b', type=int, default=32)
-    parser.add_argument('--epochs',     '-e', type=int, default=150)
-    parser.add_argument('--device',      '-d',type=str, default='cuda:1')
+    parser.add_argument('--epochs',     '-e', type=int, default=900)
+    parser.add_argument('--device',      '-d',type=str, default='cuda:0')
     parser.add_argument('--num_workers', '-j',type=int, default=8)
-    parser.add_argument('--lr_start', '-lr',type=int, default=0.0007)
+    parser.add_argument('--lr_start', '-lr',type=int, default=0.0001)
     parser.add_argument('--lr_power', '-lrp',type=float, default=0.9)
     args = parser.parse_args()
 
