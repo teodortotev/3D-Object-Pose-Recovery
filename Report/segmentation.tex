@@ -1,0 +1,378 @@
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+\section{CNN Framework}
+\subsection{Overview}
+Once the dataset is completed with all the necessary inputs required for the proposed method, a CNN framework has to be implemented to process it. The framework needs to be able to detect objects in monocular RGB images and predict part segmentation mask, corresponding CAD model category and 2D key-point locations for each detected instance. Since the method relies heavily on its ability to segment cars by parts, it should first be proven that the task is feasible and that the desired mapping can be learned.\\
+\indent Initially, two fully convolutional networks (FCN \cite{Shelhamer2016}, Deep Lab V3 \cite{Chen2017}) with proven track record in segmentation tasks will be implemented as a proof of concept that it is possible to segment car parts in the proposed manner. Eventually, a more involved framework combining FCNs with region proposal networks (Faster R-CNN \cite{Ren2017}, Mask R-CNN \cite{He2017}) will be constructed to address all of the aforementioned tasks.
+\subsection{Fully Convolutional Networks}
+\subsubsection{Fully Convolutional Network (FCN)}
+Good classification networks can be re-designed and fine-tuned to perform dense predictions for semantic segmentation \cite{Shelhamer2016}. This is done by replacing all fully connected layers with convolutional layers (\emph{Figure \ref{fig:fcn}a}). Deconvolution (fractional stride convolution) is used to up-sample the outputs from different layers which are then combined to take into account features at different scales (\emph{Figure \ref{fig:fcn}b}). Thus the resulting networks are called fully convolutional networks (FCNs). FCN \cite{Shelhamer2016} is one of the first such networks to be used for segmentation tasks.
+\begin{figure}[h]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{FCN}
+\caption{}
+\end{subfigure}%
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{FCNUP}
+\caption{}
+\end{subfigure}%
+\caption{FCN \cite{Shelhamer2016}}
+\label{fig:fcn}
+\end{figure}
+\subsubsection{Deep Lab V3 (DLV3)}
+Deep Lab V3 (DLV3) is a deep fully convolutional neural network developed at Google to overcome the challenges associated with FCNs \cite{Chen2017}. As feature maps pass through the convolutional and pooling layers of FCNs, their resolution decreases and the object boundaries in the output segmentations become fuzzy. In order to fix this, DLV3 makes use of atrous (dilated) convolution to extract features at different scales more efficiently without decreasing the resolution. This type of convolution enlarges the effective field of view of the filter by up-sampling it and inserting zeros between the existing values (\emph{Figure \ref{fig:atrous}a}). In order to combine image representations at different scales DLV3 utilises spatial pyramid pooling and concatenates the outputs (\emph{Figure \ref{fig:atrous}b}). The resulting model is based on a backbone network (ResNet \cite{He2016}, VGG \cite{Simonyan2015} etc.) and has been successfully used for segmentation purposes. It shows better performance than FCN and previous Deep Lab versions \cite{Chen2017}.
+\begin{figure}[h]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{atrous_conv}
+\caption{Atrous Convolution}
+\end{subfigure}%
+\hspace*{2cm}%
+\begin{subfigure}[c]{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{spatial_pyramid}
+\caption{Spatial Pyramid Pooling}
+\end{subfigure}%
+\caption{Deep Lab V3 \cite{Chen2017}}
+\label{fig:atrous}
+\end{figure}
+\subsubsection{Data Preparation}
+FCN and DLV3 expect 2D images and multi-class segmentation masks as inputs. These must all be square and have the same dimensions. Unfortunately, the chosen dataset contains images with wildly varying resolutions and therefore all representations derived from them will also have similar characteristics. All data will therefore have to be resized to uniform dimensions in order to be able to pass through the models. Depending on the standard size chosen, this might require up-sampling, down-sampling or even non-uniform reshaping and can be achieved through interpolation. The information in 2D images is encoded in the pixel intensities which have continuous real values ranging from 0 to 255. This means that bilinear interpolation can be used for the transformation (\emph{Figure \ref{fig:interpolation}}). In the segmentation masks, however, each pixel has a discrete value from the set $\{0,1,2,3,4,5,6,7,8\}$ and this structure needs to be preserved. Therefore the output of the bilinear interpolation should be rounded in this case. Consequently, all generated predictions will have the chosen standard resolution and will have to be interpolated back to their original dimensions. The only setback is that interpolation is not invertible which means that some information might be lost during the transformation process. Except interpolation, no other forms of data augmentation will be applied.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.3\textwidth]{bilinear}
+\caption{Bilinear Interpolation (Wikipedia)}
+\label{fig:interpolation}
+\end{figure}
+\indent Each machine learning problem requires a training set which is used to learn some model parameters that map the input to the desired output. A validation set is needed to determine the best hyper-parameters and provide an estimate of performance. Finally, predictions are made on a test set to evaluate the model and investigate how well it generalizes on previously unseen data. Following these common practices, the dataset will be split in training, validation and test sets. As discussed already, PASCAL3D+ combines PASCAL VOC 2012 with images from ImageNet which have very different characteristics. Therefore, except the combined dataset, each of the two building-block datasets will be considered separately as well. When performing the split, images in each of the subsets were selected randomly in the following common proportions: training (64\%), validation (16\%) and test (20\%). In order to form the same splits for the combined dataset, the corresponding partitions of the two subsets were merged. The resulting combined set contains 4111 training, 1029 validation, and 1282 test samples.
+\subsubsection{Implementation}
+The software solution that makes use of the models will be implemented in Python as the most widely used language for deep learning. Fortunately, DLV3 and FCN have already been implemented as part of the PyTorch Torchvision library. Both models are deep convolutional neural networks. Training such networks from scratch can be time consuming and requires a lot of data and computational power. Transfer learning, however, allows the learned parameters for a model trained on a given dataset to be reused and slightly modified to fit new data in a similar domain. Therefore pre-trained versions of DLV3 and FCN based on ResNet101 will be used. The available PyTorch implementations have been trained on a subset of the COCO dataset \cite{Lin2014} that matches the 20 categories in PASCAL VOC 2012 (including "car"). Using these models straight on would give segmentation masks for 21 classes instead of the desired 9 (including the background). Since the number of predictions depends on the number of filters in the last convolutional layer of the model and the categories considered in the current task are different from the ones in the COCO dataset, the weights of the final convolutional layer cannot be reused. In order to solve this problem, all parameters except the ones associated with the last convolutional layer are stored. It is then replaced with a new \emph{conv2d} layer with 9 output filters. Finally, the stored weights are loaded in the new model. Doing so allows the majority of the pre-trained parameters to be reused, training only the final convolutional layer from scratch.\\
+\indent The main aim when using these CNNs is to prove that the task of car part segmentation can be successfully learned rather than strive for optimal performance. For this reason some standard, proven approaches and hyper-parameter values will be chosen. In order to 'learn' the parameters that minimise the objective function, some kind of optimisation algorithm has to be used. Adam is a widely used optimizer suitable for various tasks \cite{Kingma2015}. It keeps track of bias-corrected first and second moment estimates of the gradient which ensures faster convergence and stability in deep networks:
+\begin{gather}
+g_t = \nabla_{w} f_{t}(w_{t-1}) \\
+\hat{m_t} = \frac{\beta_1 \cdot m_{t-1} + (1 - \beta_1) \cdot g_t}{1 - \beta_1^t} \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;
+\hat{v_t} = \frac{\beta_2 \cdot v_{t-1}  + (1 - \beta_2) \cdot g_{t}^2 }{1 - \beta_2^t}  \\ 
+w_t = w_{t-1} - \eta \cdot \frac{\hat{m_t}}{\sqrt{\hat{v_t}} - \epsilon} 
+\end{gather}
+where $g_t$ is the current batch gradient, $\hat{m_t}$ and $\hat{v_t}$ are the bias-corrected first and second moment estimates of the gradient and $\beta_1=0.9$, $\beta_2=0.999$ and $\epsilon=10^{-8}$ are tunable hyper-parameters with their commonly chosen values. Adam has shown good results in the original DLV3 paper \cite{Chen2017} and will therefore be applied to the current problem of object part segmentation. \\ 
+\indent One important parameter that has significant impact on performance is the learning rate. Every time a new minimising direction is estimated for the weights, the learning rate determines the step size to be made in that direction. A good choice is crucial as it could ensure convergence and avoid local minima. It is common practice for the learning rate to decrease over time as when the parameters get closer to their optimal values the update rates should become smaller. After multiple trials, the authors of the DLV3 paper \cite{Chen2017} have determined that the optimal initial learning rate value is $0.0001$ which they combine with the following learning rate scheduler: 
+\begin{equation}
+\eta_{t} = \eta_{t-1} \cdot (1 - \frac{E_c}{E_{tot}})^{0.9}
+\end{equation}
+where $E_c$ is the current epoch and $E_{tot}$ is the total number of epochs. Similar values have been used by the authors of FCN \cite{Shelhamer2016}. Therefore, the same learning procedure will be implemented for the purposes of this project.\\
+\indent Naturally, if the trained network is to perform well, a meaningful loss function relevant to the task has to be defined. In order to simplify the minimisation process, its gradients should be easy to compute or estimate. A commonly used objective function for semantic segmentation that satisfies these requirements is the per-pixel categorical cross entropy loss. For a given pixel $x$ and its corresponding one-hot positive class $c$ the loss is given by:
+\begin{equation}
+L_{x, c} = -\log\left(\frac{\exp(x_c)}{\sum_j \exp(x_j)}\right)
+\end{equation}
+\indent The values for all pixels are then summed and averaged to produce the final loss. Despite the fact that the majority of the pixels in the segmentation masks will belong to the background class, no class balancing will be performed. Labelling these correctly would still provide information a given pixel is not part of an object instance.\\
+\indent The models were trained on a single NVIDIA GeForce GTX 1080 GPU. Due to these limited resources, the maximum standard resolution that allows training to be completed in an acceptable time period was determined to be $128$x$128$. It was also estimated that $150$ epochs are sufficient for reasonably good convergence. For each network, the best performing model on the validation set was selected as final.
+\subsubsection{Evaluation}
+As discussed already, the presented loss function has the advantage of being differentiable and gradients required for its minimisation can be easily computed. However, it does not necessarily provide the most informative metric to determine whether the model performs the desired task to a good enough standard. In the case of semantic segmentation a popular and useful metric is the Intersection over Union (IoU). For each class it calculates the ratio of the number of common pixels between the target and the prediction to the total number of pixels present in both masks:
+\begin{equation}
+IoU = \frac{target \cap prediction}{target \cup prediction}
+\end{equation}
+The reported value for each segmentation is then the average over all classes. Although dominating, the background class does not say much about the ability of the model to differentiate between parts and can superficially inflate the reported results. It was therefore decided that it will be excluded from the computation of the IoU. A generally good practice is to have a second metric that can be used to safety check the results. For this purpose the common absolute Pixel Accuracy metric will be implemented. It is given by the ratio of the number of correctly classified pixels to the total number of pixels:
+\begin{equation}
+PA = \frac{correct\_pixels}{all\_pixels}
+\end{equation}
+\subsubsection{Results} 
+The results from the training of the two models on the three available datasets can be seen in \emph{Table \ref{tab:results}}. The Pixel Accuracy (PA) and mean Intersection over Union (mIOU) are shown for both the output of the models at resolution 128x128 and the predictions after resizing them to their original image dimensions. 
+\begin{table}[h]
+\centering
+	\begin{tabular}{| c || c | c | c | c | c | c | c | c | c | c | c | c |}
+		\hline 
+  		Model & \multicolumn{4}{|c|}{Pascal VOC} & \multicolumn{4}{|c|}{ImageNet} & 					\multicolumn{4}{|c|}{Combined}  \\
+  		\hline
+   		& \multicolumn{2}{|c|}{128x128} & \multicolumn{2}{|c|}{Original} & 									\multicolumn{2}		{|c|}{128x128} & \multicolumn{2}{|c|}{Original} & 								\multicolumn{2}{|c|}{128x128} & 		\multicolumn{2}{|c|}{Original}  \\
+   		\hline
+    	& PA & mIoU & PA & mIoU & PA & mIoU & PA & mIoU & PA & mIou & PA & mIoU \\
+		\hline
+		\hline
+		FCN & 87.1 & 31.4 & 87.1 & 21.1 & 91.4 & 70.8 & 91.5 & 56.8 & 90.9 & 68.1 & 91.0 & 				52.1 		\\
+		\hline
+		DLV3 & 87.4 & 33.7 & 87.4 & 21.6 & 91.3 & 70.7 & 91.4 & 56.2 & 91.1 & 68.6 & 91.2 & 				52.2 	\\
+		\hline
+	\end{tabular}
+\captionsetup{justification=centering}	
+\caption{Results from training FCN and DLV3 on PascalVOC, ImageNet and Combined datasets}
+\label{tab:results}
+\end{table}
+What is important in the end are the predicted segmentation masks in the original image resolution. These will therefore be presented here for visualisation purposes. The results from Pascal VOC 2012, ImageNet and Combined datasets are shown in \emph{Figures \ref{fig:pascal_seg}, \ref{fig:inet_seg} and \ref{fig:comb_seg}} respectively. 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{psacal_seg_horiz}
+\captionsetup{justification=centering}
+\caption{Results on the Pascal VOC 2012 dataset. \\ From top to bottom: image, ground truth mask, FCN prediction, DLV3 prediction}
+\label{fig:pascal_seg}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{inet_seg_horiz}
+\captionsetup{justification=centering}
+\caption{Results on the ImageNet dataset. \\ From top to bottom: image, ground truth mask, FCN prediction, DLV3 prediction}
+\label{fig:inet_seg}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{comb_seg_horiz}
+\captionsetup{justification=centering}
+\caption{Results on the Combined dataset. \\ From top to bottom: image, ground truth mask, FCN prediction, DLV3 prediction}
+\label{fig:comb_seg}
+\end{figure}
+
+\indent The achieved results show clearly that single centrally positioned car instances without occlusions and truncations are generally very well segmented. It is important to note that cars viewed sideways appear easier to segment than those in rear or frontal scenes. Minor inaccuracies are observed in under-represented and more difficult categories such as 'race' or 'mini'. In some cases the predicted masks are even better than the provided ground truth data - observation that reinforces the claim that PASCAL3D+ ground truth labels are not perfect \cite{Grabner2018}.\\
+\indent On the other hand, images with multiple or small instances as well as occluded and truncated objects pose significant difficulties for the selected segmentation networks. When multiple cars are present usually only the largest is identified correctly whereas the remaining ones, if detected, are segmented wrongly. Should an occlusion or truncation be present the parts are almost never identified by the models. \\
+\indent The aforementioned observations confirm the initial belief that PASCAL VOC 2012 is considerably harder than the images extracted from ImageNet which show high quality part segmentations. It is also worth noting that the two networks perform similarly under the proposed training conditions which are not necessarily optimal. In some cases, the predictions provided by FCN look visually better than those output from Deep Lab V3 although the corresponding metric values are more or less the same. This contradicts the expectation that DLV3 should outperform FCN and probably means that a more optimal training schedule for DLV3 exists.\\
+\indent These results prove that segmentation of cars by parts in the proposed way is a feasible task which can be learned by deep convolutional networks when individual object instances are present in the image. However, a more robust solution has to be identified so that truncations and occlusions can be handled adequately. Moreover, in order to proceed further and recover the 3D pose, a corresponding CAD model and 2D key-point locations need to be identified for each detected instance. 
+\subsection{Faster R-CNN}
+\subsubsection{Overview}
+\indent Although FCN and DLV3 proved that the segmentation task can be learned, they cannot extract information about a single object instance. It is therefore necessary to use a framework that operates on individual objects and is able to provide the required data for pose estimation. Despite the fact that complex CNN solutions for 3D model selection exist \cite{Grabner2018}, a classification approach where each car instance is assigned its CAD model type as a label should be sufficient. Therefore traditional object detection will be needed to generate classified object proposals. Before progressing to complex CNN frameworks, it is advisable to check if objects in the given dataset can be detected accurately.\\ 
+\indent Faster R-CNN \cite{Ren2017} is a deep convolutional neural network that builds on and improves Fast R-CNN \cite{Girshick2015}. Fast R-CNN offers significant speed and computation improvements in object proposal classification and location refinement (R-CNN) by introducing a single-stage feature sharing network structure that performs the two tasks simultaneously. However, for each input image it expects a set of region proposals generated beforehand. Thus the region proposal generation becomes the new bottleneck. Faster R-CNN addresses this issue by introducing a new type of network - region proposal network (RPN). It uses a single filter with multiple 'anchor' boxes at different scales to regress objectness and bounding box coordinates for each of them. The RPN is effectively a fully convolutional network whose output features are then shared with the object detection step thus providing a drastic speed up (\emph{Figure \ref{fig:frcnn}}).\\
+\indent Faster R-CNN should therefore be able to produce classified object detections that can later be utilized to generate part segmentation masks and 2D key-point locations.
+\indent 
+\begin{figure}[h]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{FrRCNN}
+\end{subfigure}%
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{RPN}
+\end{subfigure}%
+\caption{Faster R-CNN \cite{Ren2017}}
+\label{fig:frcnn}
+\end{figure}
+\subsubsection{Data Preparation}
+Faster R-CNN is readily implemented by Facebook Research and is available as part of a GitHub repository \cite{massa2018mrcnn}. Their implementation was designed to work with datasets using the COCO style formatting. Since it is the simplest way to make use of it, all the information related to the dataset has to be specified in a JSON file. In addition, the file should contain annotation details related to the task that is being performed. \emph{Figure \ref{fig:json}} shows the general dataset structure (a) as well as the annotation format required for object detection (b). Since this network performs detection and classification only, the segmentation field can be omitted. In order to use Faster R-CNN the PASCAL3D+ dataset has to be described in the desired JSON format. Since Faster R-CNN takes longer to train, only the combined dataset i.e. PASCAL3D+ will be considered. During the training procedure all images are transformed to a standard size of 1088x800 and the training and validation sets are combined in a single concatenated dataset as there are no specific hyper-parameters that the network optimises. 
+\begin{figure}[h]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{general_json}
+\caption{}
+\end{subfigure}%
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{json_coco_obj}
+\caption{}
+\end{subfigure}%
+\caption{COCO Dataset JSON Structure}
+\label{fig:json}
+\end{figure}
+
+\subsubsection{Implementation}
+The aforementioned GitHub repository provides an implementation of Faster R-CNN based on ResNet with depth of 50 or 101 layers. In order to reduce the training time required, possibly at the expense of some accuracy, the ResNet50 backbone pre-trained on ImageNet was selected. Following the training guidelines provided in the repository, the base learning rate was set to 0.01 with the default learning rate warm-up and scheduler. Training on a single GPU requires 350 epochs.
+\subsubsection{Results}
+Each dataset has a preferred metric that is observed by scientists when submissions are made in order to determine the relative efficiency of a given method. Precision and recall are two popular metrics that are used for evaluation in different machine learning problems and are thus often implemented. Precision is defined as the percentage of correct predictions, whereas the recall measures how well the correct predictions are being discovered. These can be simply expressed with the following equations:
+\begin{equation}
+Precision = \frac{TP}{TP + FP} \;\;\;\;\;\;\;\; Recall = \frac{TP}{TP + FN}
+\end{equation}
+where TP, FP, FN are the number of true positive, false positive and false negative predictions. In the case of object detection, a correct prediction is considered to be one with matching classification and IoU above a certain threshold. It is then common to plot precision-recall curves to exemplify the performance of a model. Faster R-CNN has adopted the COCO dataset evaluation procedure which a metric called average precision (AP). The AP is effectively the area under the precision-recall curve with some discrete approximations which make the computation easier. The reported value is usually mean average precision (mAP) which is  averaged over the AP values for different IoU thresholds. In addition, APs for small ($area < 32^2$), medium ($32^2 < area < 96^2$) and large ($area > 96^2$) are calculated. The numerical results from training Faster R-CNN as discussed above are shown in \emph{Table \ref{tab:results_faster}}.
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c | c | c | c | c | c |}
+		\hline 
+  		AP(50:95) & AP50 & AP75 & APs & APm & APl  \\
+  		\hline
+   		51.88 & 60.94 & 59.25 & 6.57 & 11.20 & 58.67 \\
+		\hline
+	\end{tabular}	
+\caption{Faster R-CNN Results}
+\label{tab:results_faster}
+\end{table}
+\indent In order to visualise the results, some of the target-prediction (left-right) pairs of images are presented in \emph{Figure \ref{fig:faster_boxes}}. The color scheme used is shown in \emph{Table \ref{tab:boxcolor}} where CAD model numbers correspond to the models as seen in \emph{Figure \ref{fig:cadmodels}} from left to right and from top to bottom. 
+\begin{table}[h]
+	\centering
+	\begin{tabular}{| c || c | c | c | c | c | c | c | c | c | c |}
+		\hline 
+  		\textbf{CAD} & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\
+  		\hline
+		\textbf{Color} & \cellcolor{Orange} & \cellcolor{LightBlue} & \cellcolor{Brown} & \cellcolor{Pink} & \cellcolor{DarkGreen} & \cellcolor{DarkBlue} & \cellcolor{LightGreen} & 						\cellcolor{Turquoise} & \cellcolor{sth1} & \cellcolor{sth2}\\
+		\hline  		
+   		\textbf{Name} & Sedan & Sedan & SUV & Minivan & Sedan & Wagon & Mini & Race & Hatchback & Truck \\
+		\hline
+	\end{tabular}	
+\caption{Bounding Box Colour Scheme}
+\label{tab:boxcolor}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{FRCNN1}
+\end{subfigure}%
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{FRCNN2}
+\end{subfigure}%
+\caption{Faster R-CNN Detections}
+\label{fig:faster_boxes}
+\end{figure}
+
+\indent In \emph{Figure \ref{fig:faster_boxes}} all bounding boxes with scores greater than 0.5 have been visualised. Trends similar to the ones observed during the segmentation with FCN and DLV3 can be seen. Single car instances are generally detected and classified correctly. In the cases where multiple instances, occlusions and truncations exist, the bounding boxes are not as accurate and are sometimes assigned a different CAD model than the target. Nevertheless, almost all car instances are detected and often the network manages to correctly identify cars which have not been labelled in the original dataset. Despite this fact, the achieved mAP (AP50 - 61\%) is quite far from the mAP (72.3\%) reported for 'car' in the original Faster R-CNN paper on PASCAL VOC 2012 \cite{Ren2017}. This is mainly due to several key differences. Firstly, the introduction of samples from ImageNet makes the dataset inherently different. Secondly, the paper's authors have followed a complicated 4-stage training process which fine tunes each building block of the model separately and has not been implemented in the repository \cite{massa2018mrcnn}. Last but by far the most important distinction is that the sub-category (CAD model) classification needed makes the task more complicated. Observations of the dataset have confirmed that there is a lot of ambiguity as to which CAD model fits best a given object instance. Therefore, it is believed that state-of-the-art results have been achieved for this particular task on PASCAL3D+. Moreover, the classified  output object detections can be extracted and fed into following stages of the CNN framework that will generate part segmentation masks and 2D key-point locations. 
+\subsection{Mask R-CNN}
+\subsubsection{Overview}
+It was shown that Faster R-CNN is capable of detecting and classifying car instances from the images in the dataset. The next step should generate a part segmentation mask for each detection. A suitable network that fits well in the concept for CNN framework is Mask R-CNN.\\
+\indent Mask R-CNN \cite{He2017} is a state-of-the-art network for object instance segmentation developed by Facebook AI Research. It is essentially an extension of Faster R-CNN. The unclassified object detections are fed into a segmentation head that generates a binary mask for each possible category. The classification output is then used to select the corresponding segmentation mask as the final for each detection thus "decoupling" mask and category prediction. The Faster R-CNN structure is almost completely reused with the exception of the ROI Pool layer which is replaced by ROI Align \cite{He2017} to improve the extraction of feature maps corresponding to a predicted detection window (\emph{Figure \ref{fig:maskrcnn}}).
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{maskrcnn}
+\captionsetup{justification=centering}
+\caption{Mask R-CNN Structure: \\ Faster R-CNN with ROI Align and mask head "decoupled" from category predictions \cite{He2017}}
+\label{fig:maskrcnn}
+\end{figure}
+The so described structure of Mask R-CNN allows only a single binary segmentation mask to be predicted for each detected instance. However, according to the choices made earlier in the project, each CAD model is split in 8 distinctive parts. This means that for every detection the model has to generate a binary mask for each of the parts or equivalently a single multi-class segmentation mask. In order for this to be possible, some modifications have to be made to the network. Since all objects that are being considered belong to the 'car' category, it could be argued that the segmentation masks of different sub-types (CAD models) should have a lot in common. Consequently, it was decided that the modified network will not take the sub-category into account when predicting a mask and will only generate one set of universal part segmentations for each detected object instance. A simple way of implementing this is to predict a binary mask for each of the car parts and combine them to form the final segmentation output. Therefore the number of output filters of the final convolutional layer in the mask predictor head were changed to 8.
+\subsubsection{Data Preparation}
+As an extension of Faster R-CNN, Mask R-CNN is implemented in the same GitHub repository maintained by Facebook Research \cite{massa2018mrcnn}. The two models share the same code infrastructure and the data needs to be specified in the required JSON format as shown in \emph{Figure \ref{fig:json}}. The only difference is that this time the network requires segmentation ground truth data. This has to be presented as a set of polygon outlines for each part category for all of the objects of interest present in the images. As the final goal of the project is to estimate the 3D pose of detected car instances, each of the produced segmentation masks should provide maximum information about the orientation of the car in space. It is therefore important that non-occluded segmentation masks are provided at input even if the actual vehicle in the image is occluded. In order to achieve this, a segmentation mask is rendered for each individual instance following the procedure described in Section 4.3 in order to take self-occlusions into account (\emph{Figure \ref{fig:singlemasks}}).
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{singlemasks}
+\caption{Individual Segmentation Masks}
+\label{fig:singlemasks}
+\end{figure}
+\indent The resulting individual segmentation masks are split into 8 binary masks - one for each of the parts. Their outlines are then encoded as one or multiple (in case of discontinuities) polygons and stored in the JSON file describing the dataset. Again the combined PASCAL3D+ dataset will be used. 
+\subsubsection{Training}
+The ground truth masks read by the data loader are propagated to the mask head to compute the loss. Since the form of the output predicted by the model was changed, the loss function has to be modified as well. Originally, the network would generate predicted masks for all possible classes and compute binary cross entropy loss only on the class corresponding to the predicted category of the detection window. In contrast, the new loss function will not care about the object sub-category. It will take all 8 masks output as predictions and compare them to the corresponding part ground truth using binary cross entropy. \\
+\indent Similarly to Faster R-CNN, Mask R-CNN relies on a ResNet backbone and implementations with different depth pre-trained on ImageNet are available. Again, in order to reduce the time required to train the network, possibly sacrificing some accuracy, a model based on ResNet50 was selected. Following the repository guidelines for training on a single GPU, a base learning rate of 0.00125 with the default warm up and scheduler were used. The model was then trained for 350 epochs. 
+\subsubsection{Results}
+Mask R-CNN performs object detection and then generates segmentation masks for each of the detections accordingly. Therefore, the performance of the two tasks will have to be evaluated. Similarly to Faster R-CNN, the achieved results are measured according to the COCO dataset standard which involves the use of average precision (AP) as described in Section 5.3.4. The corresponding values for the predictions of Mask R-CNN can be seen in \emph{Table \ref{tab:mrcnn_obj_results}}. 
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c | c | c | c | c | c |}
+		\hline 
+  		AP(50:95) & AP50 & AP75 & APs & APm & APl  \\
+  		\hline
+   		53.53 & 64.04 & 60.17 & 3.05 & 12.88 & 59.95 \\
+		\hline
+	\end{tabular}	
+\caption{Mask R-CNN Object Detection Results}
+\label{tab:mrcnn_obj_results}
+\end{table}
+\indent These results show that the bounding boxes predicted by Mask R-CNN are slightly better than those predicted by Faster R-CNN. An exception are the small boxes which have turned out to be more difficult. This is to be expected as Mask R-CNN replaces the ROI Pool stage of Faster R-CNN with ROI Align which solves some quantization problems experienced previously and improves the performance \cite{He2017}. Using the same colour-coding scheme as in \emph{Table \ref{tab:boxcolor}} some target-prediction pairs are visualized in \emph{Figure \ref{fig:mrcnn_bbox}}.
+\begin{figure}[H]
+\centering
+\begin{subfigure}[c]{0.5\textwidth}
+\centering
+\includegraphics[width=\textwidth]{MRCNNbox1}
+\end{subfigure}%
+\begin{subfigure}[c]{0.53\textwidth}
+\centering
+\includegraphics[width=\textwidth]{MRCNNbox2}
+\end{subfigure}%
+\caption{Mask R-CNN Detections}
+\label{fig:mrcnn_bbox}
+\end{figure}
+As expected, the majority of the objects have been detected correctly. Again, the model manages to identify some car instances that are not present in the ground truth data. The most obvious feature, however, is the fact that in some cases the classification of the correct CAD model appears to be quite hard. The confusion between CAD1 and CAD2, both of which correspond to the 'sedan' sub-category, confirms the theory that the CAD models available in the dataset are inherently ambiguous to differentiate since in many cases there are multiple models that can fit well to a given object instance. Nevertheless, since the quality of the object detections is high, they can be used further in the segmentation part of the network to predict part segmentation masks. As the modified segmentation head is independent of object category, the classification ambiguity is expected to have no effect on the generated masks.\\
+\indent  The training procedure described in \emph{Section 5.4.3} outputs 8 binary part segmentations with resolution 28x28 for each detection window. In order to get the final multi-class segmentation by parts, the predicted results for each binary part mask have to be combined. Initially a sigmoid function is applied to transform the output numerical values into probability values ranging from 0 to 1.
+\begin{equation}
+\sigma(x) = \frac{\exp(x)}{1 + \exp(x)}
+\end{equation}
+\indent Each of the predicted masks is then bilinearly interpolated to its predicted bounding box dimensions as described in \emph{Section 5.2.3}. The binary classification of a pixel is considered 'positive' if it belongs to a particular part class with probability of at least 0.5. Therefore a threshold of 0.5 is applied on all binary masks. All pixels that are 'negative' in all of the binary masks are considered to belong to the background class. For the remaining pixels non-maximum suppression has been used so that each pixel is labelled as the part to which it belongs with the highest probability. This results in a multi-class segmentation mask for each of the detected instances in an image. \\
+\indent  In order to evaluate the overall segmentation performance all target masks outside of their ground truth boxes are ignored. Each of the predicted masks is fit into its predicted bounding box position in a black image of the original resolution. This allows both targets and predictions to be in the original image dimensions in their corresponding bounding box positions. For each target object detection the best fit prediction bounding box (IoU) is determined. Next, the Intersection over Union metric is computed and averaged over all instances in all images, excluding the background class to avoid superficial inflation of the results. If an instance has not been identified by the object detection part the segmentation accuracy is set to 0. The so achieved segmentation mIoU by the model is \textbf{34.1}. Using the already familiar colour-coding in \emph{Table \ref{tab:boxcolor}}, some of the generated masks are visualised in the following figures for all ground truth detections in an image.\\
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{mrcnnseg}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{mrcnnseg1}
+\captionsetup{justification=centering}
+\caption{Mask R-CNN Segmentation Results \\ From top to bottom: image, ground truth mask, Mask R-CNN prediction}
+\label{fig:mrcnn_masks}
+\end{figure}
+\indent The majority of the predicted masks have defects. Since each instance is considered separately, there is no obvious difference between large and small instances in terms of segmentation accuracy. It can clearly be seen that there are good and bad samples for both. The most striking observation, however, is the fact that some classes are often misinterpreted by the model in a consistent manner. There are two modes of error. Firstly, the network often confuses the left and right side of cars. Secondly, it tends to merge or separate neighbouring parts. This behaviour can be due to the small initial resolution (28x28) of the predictions from which the masks are up-sampled or the lack of separate mask for the background class. An attempt to fix these will be made before progressing to the following stages required for pose estimation.
+\subsubsection{Results x56}
+The identified misbehaviour of Mask R-CNN segmentation masks has been attributed to one of the reasons mentioned at the end of the previous section. In an attempt to improve the performance, some modifications to the network will be made accordingly. The original implementation of the model has a ROI Align layer in the mask head which extracts a feature map with dimensions 14x14 for each corresponding detection window. This window is then up-sampled to an output segmentation mask of size 28x28. However, the size of the pooler window and thus the final mask resolution might have some effect on the quality of the predicted segmentations as they have significant influence on the level of detail captured from the existing feature maps. Therefore the ROI Align window has been set to 28x28 with an output segmentation mask of size 56x56. The network is then trained as described in \emph{Section 5.4.3}. Although the change should not have notable effect on the quality of the object detection, slightly different results were achieved as shown in \emph{Table \ref{tab:mrcnn_obj_resultsx56}}.
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c | c | c | c | c | c |}
+		\hline 
+  		AP(50:95) & AP50 & AP75 & APs & APm & APl  \\
+  		\hline
+   		52.80 & 63.25 & 59.09 & 4.65 & 11.06 & 59.35 \\
+		\hline
+	\end{tabular}	
+\caption{Mask R-CNN x56 Object Detection Results}
+\label{tab:mrcnn_obj_resultsx56}
+\end{table}
+All reported values are slightly lower than before except those for small bounding boxes which have improved a bit. Visually, the detections are indistinguishable from the ones shown in \emph{Figure \ref{fig:mrcnn_bbox}}.\\
+\indent Following the already established procedure the performance of the segmentation head is evaluated using the Intersection over Union metric. The resulting mIoU value is \textbf{30.07} and it can be seen that the quality of the produced masks is significantly lower and the same error modes are present.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{mrcnnsegx56}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{mrcnnseg1x56}
+\captionsetup{justification=centering}
+\caption{Mask R-CNN x56 Segmentation Results \\ From top to bottom: image, ground truth mask, Mask R-CNN prediction}
+\label{fig:mrcnnx56_masks}
+\end{figure}
+Given the achieved results and their visual representations it can be concluded that increasing the size of the pooling layer and the output mask in the suggested way has negative effect on the performance of the network. 
+\subsubsection{Results 9 Classes}
+Yet another potentially important factor that can influence the quality of the segmentation masks is the number of part classes that the network predicts. Since by design each car is split into 8 different parts, Mask R-CNN was modified to generate a single binary mask for each of the parts. These were then combined and the pixels that did not belong to any of the masks with reasonable confidence were assigned to the background class. However, having an additional separate mask for the background class might improve the accuracy of the generated segmentations. Therefore the network was modified to take in and output 9 masks. In order to create the final multi-class mask, each pixel is classified as the part whose probability is the highest. Although the modification should only affect the quality of the segmentation, it was observed that the APs of the object detection are slightly higher:
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c | c | c | c | c | c |}
+		\hline 
+  		AP(50:95) & AP50 & AP75 & APs & APm & APl  \\
+  		\hline
+   		54.25 & 64.19 & 61.46 & 4.52 & 11.97 & 60.59 \\
+		\hline
+	\end{tabular}	
+\caption{Mask R-CNN 9 Classes Object Detection Results}
+\end{table}
+\label{tab:mrcnn_obj_results9class}
+Moreover, the mIoU reported from the modified version of the network is \textbf{34.47} which is better than the one achieved by the previous model thus verifying that considering the background as a separate category is beneficial for the performance. Some of the segmentation masks predicted by the model are visualized in \emph{Figure \ref{fig:mrcnn9class_masks}}.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{mrcnnseg9class}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{mrcnnseg9class1}
+\captionsetup{justification=centering}
+\caption{Mask R-CNN 9 Class Segmentation Results \\ From top to bottom: image, ground truth mask, Mask R-CNN prediction}
+\label{fig:mrcnn9class_masks}
+\end{figure}
+\subsection{Mask R-CNN Alternative}
+\subsubsection{Overview}
+The modified Mask R-CNN structure managed to detect, classify and segment objects by parts. Unfortunately, despite the two attempted improvements in the network structure, the highest achieved segmentation mIoU of \textbf{34.47} is unsatisfactory. Despite the fact that FCN and DLV3 considered the whole image rather than single instances, they achieved much higher segmentation accuracies and performed best when individual objects were present in the images. Moreover, in \emph{Section 5.4} it was shown that Mask R-CNN is capable of detecting a significant portion of the existing car instances, successfully dealing with some of the occlusions and truncations. Naturally, this led to the idea to feed the output object detections from Faster R-CNN into the already trained models of FCN and DLV3. In this way only a single object instance will be present at once and better segmentation performance can be achieved. 
+\subsubsection{Structure}
+\indent The Mask R-CNN 9 Classes object detection predictions are extracted and for each target object detection the best fit prediction bounding box (IoU) is determined. The corresponding image is cropped to the boundaries of the predicted detection window. Bilinear interpolation is used to change the crop resolution to 128x128 which is the expected image size for FCN and DLV3. Predicted segmentation masks are then generated by the selected model and interpolated back to the bounding box dimensions. Finally, both target and predicted masks are fit in their corresponding positions in a black image with the original image dimensions. 
+\subsubsection{Results}
+The familiar already Intersection over Union metric is computed. If the object has not been detected its IoU is set to 0. All different models from Section 5.2 were tested achieving the following results:
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c || c | c | c | c | c | c |}
+		\hline 
+  		\textbf{Model} & FCN-Comb & DLV3-Comb & FCN-Pascal & DLV3-Pascal & FCN-INet & DLV3-INet \\
+  		\hline
+   		\textbf{mIoU} & 47.4 & 47.5 & 32.5 & 31.6 & 46.9 & 47.2 \\
+		\hline
+	\end{tabular}	
+\caption{Mask R-CNN Alternative Segmentation Results}
+\label{tab:results_fasterfcn}
+\end{table}
+\indent The segmentation masks generated by the best performing model (DLV3-Comb) are visualised in \emph{Figure \ref{fig:fasterfcn}} and are compared to the corresponding Mask R-CNN 9 Classes predictions.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{fastercnnfcn1}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{fastercnnfcn2}
+\captionsetup{justification=centering}
+\caption{Faster R-CNN + DLV3-Comb Segmentation Results \\ From top to bottom: image, ground truth mask, DLV3-Comb and Mask R-CNN 9 Classes predictions}
+\label{fig:fasterfcn}
+\end{figure}
+\indent The numerical results in \emph{Table \ref{tab:results_fasterfcn}} show that feeding Mask R-CNN object detections in pre-trained FCN/DLV3 models increases the framework's mIoU to \textbf{47.5}. This is also evident in the visualised predictions from the models compared in \emph{Figure \ref{fig:fasterfcn}}. It can be seen that in the majority of the mask where the car has actually been detected, the relative position and shape of the parts are distinguishable and well predicted. Although many wrongly classified pixels exist, in most of the cases they do not have a detrimental effect on the visual interpretation of the whole masks. Moreover, since the detections have been generated by Mask R-CNN, there is a corresponding CAD model for each identified car instance. Consequently, despite the fact that there is a lot of room for improvement, the combined output of object detection, classification and segmentation is considered to be of good enough quality for it to be used further in the pose estimation step.
+\end{document}
+ 

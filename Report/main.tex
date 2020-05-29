@@ -1,0 +1,122 @@
+\documentclass[a4paper,11pt]{article}
+\title{\textbf{3D Object Pose Recovery}}
+\author{\textbf{Teodor Totev} \\ \textbf{St Catherine's College}}
+\date{}
+
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{subfiles}
+\usepackage[colorlinks=true, citecolor=green, linkcolor=black]{hyperref}
+\usepackage[backref=true, sorting=none]{biblatex}
+\addbibresource{4YP.bib}
+\usepackage[final]{pdfpages}
+\usepackage{amsmath}
+\usepackage{indentfirst}
+\usepackage{multirow}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{float}
+
+% Define colors
+\definecolor{Orange}{rgb}{0.954, 0.591, 0.282}
+\definecolor{LightBlue}{rgb}{0.032, 0.66, 0.731}
+\definecolor{Brown}{rgb}{0.357, 0.048, 0.138}
+\definecolor{Pink}{rgb}{0.663, 0.349, 0.837}
+\definecolor{DarkGreen}{rgb}{0.282,0.451,0.139}
+\definecolor{DarkBlue}{rgb}{0.23,0.241,0.588}
+\definecolor{LightGreen}{rgb}{0.711,0.715,0.366}
+\definecolor{Turquoise}{rgb}{0.625,0.856,0.807}
+\definecolor{sth1}{rgb}{0.425,0.556,0.307}
+\definecolor{sth2}{rgb}{0.325,0.256,0.907}
+
+\setmainfont{Arial}
+\doublespacing
+\pagestyle{fancy}
+\chead{3D Object Pose Recovery}
+\rhead{2019-2020}
+
+\begin{document}
+
+\begin{titlepage}
+\clearpage
+\maketitle
+\thispagestyle{empty}
+\vspace{10mm}
+\begin{center}
+\includegraphics[scale=0.2]{logo} \\
+\vspace{30mm}
+Supervisor\\
+Prof. Victor A. Prisacariu\\
+\vspace{30mm}
+University of Oxford \\
+Department of Engineering Science \\
+Trinity Term 2020
+\end{center}
+\end{titlepage}
+
+\clearpage
+
+\begin{abstract}
+\lhead{Abstract}
+\subfile{abstract.tex}
+\end{abstract}
+
+\clearpage
+
+\renewcommand{\abstractname}{Acknowledgements}
+\begin{abstract}
+\lhead{Acknowledgements}
+ \subfile{acknowledgements.tex}
+\end{abstract}
+
+\clearpage
+
+\tableofcontents
+
+\clearpage
+
+\lhead{Introduction}
+\subfile{introduction.tex}
+
+\clearpage
+
+\lhead{Literature Review}
+\subfile{lit_review.tex}
+
+\clearpage
+
+\lhead{Overview of Proposed Method}
+\subfile{method.tex}
+
+\clearpage
+
+\lhead{Data}
+\subfile{data.tex}
+
+\clearpage 
+
+\lhead{Segmentation}
+\subfile{segmentation.tex}
+
+\clearpage
+
+\lhead{3D Pose Estimation}
+\subfile{pose.tex}
+
+\lhead{Conclusion}
+\subfile{conclusion.tex}
+
+\clearpage
+
+\printbibliography
+
+\includepdf[pages=-]{riskassessment1.pdf}
+\includepdf[pages=-]{riskassessment.pdf}
+
+\end{document}

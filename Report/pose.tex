@@ -1,0 +1,90 @@
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+\section{3D Pose Recovery}
+\subsection{Overview}
+The end goal of this project is to investigate the feasibility of the proposed method to be used to recover the 3D object pose. It has already been shown that well-performing methods to detect, classify and segment car instances by parts exist. These are useful for 2D localisation and categorisation of objects of interest in images. However, since images are representations of the real world, quite often the gained 2D information is not enough to reason about the surroundings. Therefore, additional knowledge about the 3D position and orientation is needed. Recovering the 3D pose of objects is thus essential in providing understanding of the observed environment. \\
+\indent In \emph{Section 4} it was discussed that the ground truth viewpoint information has been determined by a two-step process \cite{Xiang2014}. Initially, human annotators align crudely a CAD model of their choice to each identified object instance and identify the positions of a pre-determined set of 2D projections of 3D key-points. The rough pose parameters are extracted from the alignment tool and used as initialisation for an optimisation procedure. The intrinsic camera matrix is fixed as a virtual projection matrix:
+\begin{equation} 
+K = 
+\begin{bmatrix}
+f*v & 0 & 0 \\
+0 & f*v & 0 \\
+0 & 0 & -1 \\
+\end{bmatrix} \;
+=
+\begin{bmatrix}
+1*3000 & 0 & 0 \\
+0 & 1*3000 & 0 \\
+0 & 0 & -1 \\
+\end{bmatrix}
+\end{equation}
+\indent It is also assumed that the camera always faces the centre of the observed object. In this case what is left is to determine the rotation and translation parameters that map the 3D points on the CAD model to the corresponding 2D key-points identified in the image. The resulting PnP problem is then solved by minimising the re-projection error:
+\begin{equation}
+\min_{\textbf{R},t} \sum_i^L \| (x_i - \tilde{x_i})\|_2
+\end{equation} 
+where \textbf{R} is the rotation matrix, \emph{t} is the translation vector, \emph{L} is the number of visible anchors and \emph{$\tilde{x_i}$} are the identified 2D key-point positions in the image. In order to do so a non-linear optimisation program using an interior-point algorithm is defined as follows:
+\begin{equation}
+	\begin{aligned}
+		& \underset{v}{\text{minimize}}
+		& &  f(v) \\
+		& \text{subject to}
+		& &  lb \leq v \leq ub 
+	\end{aligned}
+\end{equation}
+where \emph{v} combines all viewpoint parameters - azimuth, elevation, distance, focal length, principal point and in-plane rotation, \emph{f(v)} is a function that computes the re-projection error and \emph{lb} and \emph{ub} are the lower and upper bounds on each of the viewpoint parameters respectively. This procedure refines the pose further and its output is used as ground-truth in the PASCAL3D+ dataset.
+\subsection{Key-Point Extraction}
+All methods discussed in previous sections aimed to generate reliable part segmentation masks and predict a corresponding CAD model for each object detection. Given a perfect part segmentation mask i.e ground truth, a human should be able to provide a crude estimate of the orientation of the object in space and its relative distance to the observer. This is mainly due to inherent knowledge about the relative positions of different parts and the ability to reason about directions knowing which parts are visible and which are occluded. These observations mean that part segmentation masks should provide sufficient information for 3D pose estimation.\\
+\indent Provided with 2D-3D correspondences and good initialization point, the technique described in \emph{Section 6.1} can be used to recover the object pose. The 2D-3D key-point correspondences can either be manually extracted from the part segmentation masks or regressed by a CNN as part of the model framework.
+\subsubsection{Manual Key-Point Extraction}
+The models developed so far ensure that each detected car instance has a corresponding CAD model and part segmentation mask. This means that some matching points between the 2D masks and the 3D model have to be determined so that a PnP problem can be defined.\\
+\indent Due to the specifics of the parts proposed in this project and the inherent symmetry that exists in cars, it could be shown that at least 4 parts are visible from each viewpoint. It is also worth noting that excluding the focal length which is assumed to be 1, there are 6 unknown parameters that are needed to estimate the viewpoint - azimuth, elevation, distance, principal point and in-plane rotation. Each 2D-3D corresponding point provides two equations - one in $x$ and one in $y$. Thus a minimum of 3 matching points need to be determined in order for the viewpoint parameters to be estimated.\\
+\indent The simplest and most intuitive way to define the key-points is to argue that the part centres in the part segmentation masks should match the corresponding part centres in the 3D model. In the rare cases when the viewpoint is such that the camera image plane is parallel to one of the xy, yz or zx planes i.e. the car is viewed from one of its sides, exactly 4 parts will be visible and their 2D and 3D centres will form an ideal matching pair. In all other situations more than 4 parts will be visible and the 2D-3D centre correspondences will not be perfect mostly due to inter-part occlusions. Therefore, in order to ensure that at least 3 matching points are available and that the selected points are as accurate as possible, only the centres of the 4 most numerous (pixel count) parts will be considered. Naturally, in most cases these are also the parts which are closest to the camera. For the part segmentation mask a centre location is defined by taking the average between the min and max for each coordinate (i.e. its position can be outside the part segment but still relevant in 3D) whereas for the CAD model the mean coordinate values are chosen (\emph{Figure \ref{fig:kptsman}}).
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{kptsman}
+\captionsetup{justification=centering}
+\caption{Manual Key-Point Extraction \\ From top to bottom: Ground Truth Part Segmentation Mask, Corresponsing CAD Model}
+\label{fig:kptsman}
+\end{figure}
+\indent Once the key-point correspondences have been identified, they can be fed into the optimisation process described in \emph{Section 6.1}. In order to check the feasibility of the approach, it will initially be tested on the ground truth part segmentation masks generated in \emph{Section 4.4}. The optimisation algorithm requires an initial point. Three different approaches have been taken to provide one. The first sets all unknown parameters to the middle of their range and adjusts the bounds to cover all possible parameter values. The second considers a completely random initialization, whereas the third initialises the parameters with random perturbations of their ground truth values. \\
+\indent The accuracy of viewpoint estimation is traditionally evaluated using the Average Viewpoint Precision (AVP) metric introduced by the creators of PASCAL3D+ \cite{Xiang2014}. It considers a viewpoint estimate as correct, if the 2D bounding box IoU is at least 0.5, the true class is assigned and the estimated azimuth is in the same bin as the ground truth value. Since in this case ground truth data is used, the bounding box and category are inherently perfect and thus only the last condition remains. The original AVP reports values for 4,8,16 and 24 bin splits and the same will be done here. The results from the three different initialisation approaches on Pascal VOC and ImageNet are shown in \emph{Table \ref{tab:viewest}}.\\
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c || c | c | c | c | c | c |}
+		\hline 
+  		\textbf{Dataset} & Pascal & Pascal R & Pascal G & INet & INet R & INet G \\
+  		\hline
+   		\textbf{$AVP_4$} & 18.9 & 12.5 & 38.6 & 10.8 & 17.4 & 50.0  \\
+		\hline  		
+   		\textbf{$AVP_8$} & 14.4 & 6.6 & 27.8 & 6.2 & 8.5 & 26.2 \\
+		\hline   		
+   		\textbf{$AVP_{16}$} & 9.8 & 3.9 & 18.1 & 2.6 & 4.0 & 13.0 \\
+		\hline   		
+   		\textbf{$AVP_{24}$} & 7.9 & 3.0 & 13.4 & 1.7 & 2.7 & 8.8\\
+		\hline
+	\end{tabular}	
+\caption{Viewpoint Estimation from Ground Truth Segmentation Masks}
+\label{tab:viewest}
+\end{table}
+\indent The presented results show that estimating the viewpoint from part segmentation masks is possible. It is also evident that a good initialisation point is of crucial importance for the performance of the method. Surprisingly, the mid-range initialisation gave better results on the Pascal VOC dataset compared to the completely random one. This might be due to inherent viewpoint statistics in the dataset \cite{Xiang2014}. Although the method performance is better when the initial point is set close to the ground truth value, it is still quite far from perfect. This means that the identified key-point matches are not ideal. Before testing the method on actual predicted data, its robustness has to be improved. This can be done by finding a suitable initialisation point and by generating more and better key-point matches.
+\subsubsection{CNN Key-Point Regression}
+One way to increase the number of available key-points is to make use of the 12 anchor point annotations available in PASCAL3D+ for each CAD model \cite{Xiang2014}. A neural network can learn to predict the locations of these points by using information from the generated part segmentation masks. \\
+\indent Fortunately, Mask R-CNN has already been used to predict 17 key-points for human pose estimation \cite{He2017}. The key-point location is encoded as a one-hot segmentation mask of reduced standard resolution 640x800. The key-point head itself is very similar to the one implemented to generate 2D bounding box predictions. The output mask resolution is set to 56x56 - slightly higher than the one used in the mask head. Moreover, the key-point head has the option to process the features produced for the segmentation masks thus reusing the information stored in them.\\
+\indent In order to enable Mask R-CNN to predict the locations of the 12 anchor points defined in PASCAL3D+, the number of expected parts has to be changed to 12. In addition, the JSON file generated in \emph{Section 5.4.2} has to be extended with key-point coordinate and visibility annotations.\\
+\indent The network was trained for 350 epoch using the same parameters as in previous sections. The already familiar Average Precision (AP) metric results are shown in \emph{Table \ref{tab:maskkey}}.
+\begin{table}[H]
+	\centering
+	\begin{tabular}{| c | c | c | c | c | c |}
+		\hline 
+  		AP(50:95) & AP50 & AP75 & APs & APm & APl  \\
+  		\hline
+   		7.06 & 11.75 & 7.41 & 3.04 & 2.68 & 8.52 \\
+		\hline
+	\end{tabular}	
+\caption{Mask R-CNN Car Key-Point Results}
+\label{tab:maskkey}
+\end{table}
+\indent It can be seen that the achieved numerical values are quite low. After the training process, it was identified that Mask R-CNN requires standard deviations for each key-point to be provided. This has to be done by careful analysis of the dataset so that it complies with the COCO evaluation script requirements \cite{cocoeval}. Unfortunately, due to time limitations more research on the proposed method will have to be done in future work. \\
+\indent Nevertheless, this section managed to prove that the suggested approach for viewpoint extraction is feasible and can work well if better initialisation and key-point matches are provided. The key-point problem could be solved by fixing the suggested Mask R-CNN key-point implementation. It should also be possible to extend it to predict a set of good initialisation parameters for each detected object based on the available part segmentation masks.
+\end{document}
