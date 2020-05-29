@@ -25,7 +25,7 @@ if d == 0
     return;
 end
 
-%% Find camera center
+%% Find camera center coordinates
 C = zeros(3,1);
 C(1) = d*cos(e)*sin(a);
 C(2) = -d*cos(e)*cos(a);

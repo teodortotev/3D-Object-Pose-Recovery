@@ -3,7 +3,7 @@ function main
 
 cls = 'car'; % Specify the class
 opt = globals();
-visualizations = 0; % 1-ON, 0-OFF
+visualizations = 1; % 1-ON, 0-OFF
 
 %% Load PASCAL3D+ Modified CAD Models
 fprintf('Load CAD Models from File\n');
@@ -12,7 +12,7 @@ file = load(file);
 cads = file.cads;
 
 %% Load Annotations
-filename = fullfile(sprintf(opt.path_ann_imagenet, cls), '*.mat');
+filename = fullfile(sprintf(opt.path_ann_pascal, cls), '*.mat');
 files = dir(filename);
 
 %% Get Number of Images
@@ -26,7 +26,7 @@ end
 cmap = colormap(jet);
 colors = load(fullfile(opt.path_pascal3d, '/CAD/colors.mat'));
 colors = colors.colors;
-for img_idx = 1:nimages
+for img_idx = 44:nimages
     filename = files(img_idx).name;
     [pathstr, name, ext] = fileparts(filename);
     
@@ -34,7 +34,7 @@ for img_idx = 1:nimages
     im_name = filename;
     
     %% Show Image
-    filename = fullfile(sprintf(opt.path_img_imagenet, cls), [name '.jpeg']);
+    filename = fullfile(sprintf(opt.path_img_pascal, cls), [name '.jpg']);
     I = imread(filename);
     [h, w, ~] = size(I);
     if visualizations
@@ -44,7 +44,7 @@ for img_idx = 1:nimages
     end
     
     %% Load Annotations
-    filename = fullfile(sprintf(opt.path_ann_imagenet, cls), files(img_idx).name);
+    filename = fullfile(sprintf(opt.path_ann_pascal, cls), files(img_idx).name);
     object = load(filename);
     objects = object.record.objects;
     
@@ -52,6 +52,8 @@ for img_idx = 1:nimages
     obj_mask = zeros(h,w);
     depth_map = zeros(h,w);
     for i = 1:numel(objects)
+        single_mask = zeros(h,w);
+        single_depth_map = zeros(h,w);
         object = objects(i);
         if strcmp(object.class, cls) == 0
             %disp('Classes do not match!')
@@ -66,7 +68,7 @@ for img_idx = 1:nimages
         end
         
         %% Get Vertices and Faces
-        cad_index = object.cad_index;
+        cad_index = object.cad_index
         x2d = project_3d(cads(cad_index), object);
         is_empty = 0;
         if isempty(x2d)
@@ -85,7 +87,7 @@ for img_idx = 1:nimages
         end
         
         %% Determine Segmentation Mask
-        [obj_mask, depth_map] = segmentation_mask(x2d, classes, faces, h, w, obj_mask, depth_map);
+        [obj_mask, single_mask, depth_map] = segmentation_mask(x2d, classes, faces, h, w, obj_mask, single_mask, depth_map, single_depth_map);
     end
     if visualizations
         hold off;
@@ -111,10 +113,10 @@ for img_idx = 1:nimages
     end
     
     %% Save the generated segmentation mask
-    if ~is_empty
-        folder = fullfile(opt.path_pascal3d, '/Masks/car_imagenet', strcat(im_name(1:end-4),'_mask.csv'));
-        writematrix(obj_mask, folder);
-    end
+%     if ~is_empty
+%         folder = fullfile(opt.path_pascal3d, '/Masks/car_imagenet', strcat(im_name(1:end-4),'_mask.csv'));
+%         writematrix(obj_mask, folder);
+%     end
 end
 
 end

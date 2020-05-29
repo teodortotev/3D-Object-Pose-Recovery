@@ -1,6 +1,9 @@
-function [obj_mask, single_mask, depth_map] = segmentation_mask(proj_pts, classes, faces, h, w, obj_mask, single_mask, depth_map, single_depth_map)
+function [obj_mask, depth_map] = mrcnn_segmask(proj_pts, classes, faces, h, w, obj_mask, depth_map)
 %SEGMENTATION_MASK 
-%   Creates a segmentation mask
+%   Creates a segmentation mask which is effectively the common part
+%   between a global segmentation mask and the current instance
+%   segmentation mask. The idea is to leave out an 'occlusion' aware
+%   segmentation mask for each instance.
 
 %% Add class label to each point
 proj_pts(:,4) = classes;
@@ -65,7 +68,6 @@ for i = 1:num_faces
                 w2 = w2 / area;
                 
                 % Z-buffer
-                z_single = single_depth_map(y, x);
                 z_old = depth_map(y, x);
                 z_new = z(1) * w0 + z(2) * w1 + z(3) * w2;
                 
@@ -85,15 +87,6 @@ for i = 1:num_faces
                 elseif z_new < z_old 
                     depth_map(y, x) = z_new;
                     obj_mask(y, x) = l_new;
-                end
-                
-                % Set single pixel class and depth
-                if z_single == 0
-                    single_depth_map(y,x) = z_new;
-                    single_mask(y,x) = l_new;
-                elseif z_new < z_single 
-                    single_depth_map(y, x) = z_new;
-                    single_mask(y, x) = l_new;
                 end
             end
         end

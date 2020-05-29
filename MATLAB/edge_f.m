@@ -1,4 +1,4 @@
-function area = edge_f(v1, v2, p)
+    function area = edge_f(v1, v2, p)
 %EDGE_F
 %   Implements the edge function (Pineda). 
 

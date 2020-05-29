@@ -3,7 +3,7 @@ function CAD_label
 %% Initialize
 opt = globals();            % Set data directories
 cls = 'car';                % Specify the class of interest
-normal = eye(3);            % Normal vectors to xy, xz, yz
+normal = eye(3);            % Normal vectors to yz, xz, xy
 c = [0 0 0];
 
 
