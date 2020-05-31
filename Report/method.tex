@@ -1,0 +1,10 @@
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+\section{Overview of Proposed Method}
+\indent The proposed method which is the subject of discussion in this project aims to research the feasibility of a new supervised approach for 3D car pose estimation from monocular RGB images. For each available object of interest it requires a 2D bounding box, 2D key-point locations, a corresponding 3D CAD model and viewpoint annotations to be present as input. The method then combines insight about object orientation gained from instance segmentation by parts with predicted 2D key-point locations to define a PnP correspondence problem and recover the object pose.\\
+\indent Initially, the available CAD models are split in parts which are labelled appropriately. The definition of parts is however different from the traditional sense in which they are meaningful but complex, non-deterministic building blocks such as window, tyre, hood etc. Instead, the proposed method opts for simple deterministic structure that manages to retain semantic meaning i.e. front-top-left, back-bottom-right etc. Using the provided viewpoint and intrinsic camera parameters, the CAD models are projected down to the 2D images to generate part segmentation masks.\\
+\indent Next, a convolutional neural network framework is implemented to detect objects in monocular RGB images, classify them to assign a corresponding sub-category CAD model, predict the locations of 2D key-points and generate part segmentations for each detection window. This sequence prepares the stage for the pose estimation procedure.\\
+\indent Finally, the part segmentation mask and the CAD model are used to estimate additional corresponding points which are added to the key-points regressed by the network. This results in the definition of a PnP problem. In order to recover the object pose a non-linear convex optimisation which minimises the reprojection error is employed. It uses RANSAC to remove outliers and find the best transformation parameters.\\
+\indent 
+\end{document}

@@ -45,7 +45,7 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             # the box and the mask heads, then we can reuse the features already computed
             if (
                 self.training
-                and self.cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR
+                and self.cfg.MODEL.ROI_KEYPOINT_HEAD.SHARE_BOX_FEATURE_EXTRACTOR # change to use the mask features
             ):
                 keypoint_features = x
             # During training, self.box() will return the unaltered proposals as "detections"

@@ -135,12 +135,12 @@ def run_test(cfg, model, distributed):
 
 def main():
 
-    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/MASKRCNN-9class")
+    writer = SummaryWriter(logdir="/home/teo/storage/Code/name/MASKRCNN-keypoint")
 
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_mask_rcnn_R_50_FPN_1x_carpart.yaml",
+        default="/home/teo/storage/Code/3D-Object-Pose-Recovery/Python/maskrcnn-benchmark/configs/e2e_mask_rcnn_R_50_FPN_1x_carpart_kpts.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,

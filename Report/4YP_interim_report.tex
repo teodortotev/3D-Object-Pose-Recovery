@@ -1,0 +1,77 @@
+\documentclass[11pt,a4paper]{article}
+
+\title{Interim Report \\ 3D Object Pose Recovery}
+\author{Teodor I. Totev}
+\date{\today}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage{fontspec}
+\usepackage{setspace}
+\usepackage{titling}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{subcaption}
+
+\setmainfont{Arial}
+\doublespacing
+\setlength{\droptitle}{-60pt}
+\posttitle{\par\end{center}\vskip 0.5em}
+
+\begin{document}
+
+\maketitle
+
+\section{Overview of the Project} 
+3D object detection is an important problem in computer vision and robotics. Its goal is to estimate the position, dimensions and orientation of object instances in the field of view. The task is usually split in two - 2D object detection and 3D pose estimation. In order to minimise the amount of data required at test time modern approaches focus on extracting information from a single RGB image. Thus the aim of this project is to investigate a novel method for object pose recovery from monocular images. The core idea of the proposed methodology is to perform object segmentation by parts to find correspondences with a CAD model and determine its alignment over the detected object instance.
+
+\section{Key Project Objectives}
+The realization of the project depends on the existence of a suitable dataset. PASCAL3D+ contains object detections with corresponding CAD model viewpoints but no ground truth data for segmentation by parts. Therefore, the initial objective is to modify the dataset so that it can be used for the proposed task. Next, a suitable CNN has to be constructed to simultaneously perform part segmentation and classification for a corresponding CAD model. Finally, correspondences between the detected parts and the predicted model have to be determined to recover the object pose.
+
+\section{Progress to Date}
+In order to generate segmentation masks for part detection each CAD model had to be split in parts, labelled accordingly and projected back to the corresponding image. Taking the xy, yz, zx planes through the centre of each model, the points in the triangular mesh were split and labelled in 8 classes. Using the provided viewpoint, an affine camera model was used to determine the projection matrix from the 3D model to the image. Triangles from the mesh models were projected and a z-buffering algorithm was used to determine the ones visible from the given viewpoint (\emph{Fig 1}).
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[c]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{car_image}
+\caption{}
+\end{subfigure}%
+\begin{subfigure}[c]{0.22\textwidth}
+\centering
+\includegraphics[width=\textwidth]{car_model}
+\caption{}
+\end{subfigure}%
+\begin{subfigure}[c]{0.2\textwidth}
+\centering
+\includegraphics[width=\textwidth]{car_label}
+\caption{}
+\end{subfigure}%
+\caption{\\ (a) 2D Image (b) CAD Model (c) Segmentation Mask}
+\end{figure}
+
+Once segmentation masks were generated, they were loaded in a CNN together with the 2D images to try and learn the segmentation process. As a starting point, a modification of pre-trained FCN-ResNet101 was considered on cars and is currently being debugged (\emph{Fig 2}).
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[c]{0.4\textwidth}
+\centering
+\includegraphics[width=\textwidth]{images}
+\caption{}
+\end{subfigure}%
+\begin{subfigure}[c]{0.4\textwidth}
+\centering
+\includegraphics[width=\textwidth]{preds}
+\caption{}
+\end{subfigure}%
+\caption{\\ (a) 2D Images (b) Predicted Masks (59\% mIoU)}
+\end{figure}
+
+\section{Immediate Tasks}
+The 2D-3D correspondences and pose estimation rely on a good part segmentation and CAD model classification. Thus various CNN structures will be looked at to optimise performance on the dataset.
+
+\section{Plan of Work}
+Once a good segmentation is achieved (7 Dec 19'), classification functionality needs to be added to the network so that a correct CAD model is identified (17 Jan 20'). Consequently, the correspondences between key points from the segmented parts and a predicted model will be established to determine an approximate viewpoint. This will allow a projection matrix and real object dimensions to be estimated (13 Mar 20') .\\
+If the proposed work is completed ahead of plan, several potential extensions can be considered. An in-depth investigation can be made into the effect of different model splits on the pose estimation accuracy and the intermediate learning tasks. Additionally, the method can be generalized and tested on other types of objects (not only cars) for which the required training data is available.
+
+\end{document}

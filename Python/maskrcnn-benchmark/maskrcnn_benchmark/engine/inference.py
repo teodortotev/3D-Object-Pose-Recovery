@@ -45,11 +45,11 @@ def multi_to_color(mask):
         [0.324572916993309, 0.256182292006288, 0.906759544661106]])
 
     color_mask = torch.zeros((3, mask.shape[0], mask.shape[1]))
-    for cat in range(8):
-        index_mask = mask == cat + 1
-        color_mask[0,index_mask] = colors[cat][0]
-        color_mask[1,index_mask] = colors[cat][1]
-        color_mask[2,index_mask] = colors[cat][2]
+    for cat in range(1,9):
+        index_mask = mask == cat
+        color_mask[0,index_mask] = colors[cat-1][0]
+        color_mask[1,index_mask] = colors[cat-1][1]
+        color_mask[2,index_mask] = colors[cat-1][2]
     return color_mask
 
 def find_mask_iou(pred, label, n_classes):
@@ -86,13 +86,14 @@ def prob_to_multi(mask, threshold):
         [0.424572916993309, 0.556182292006288, 0.306759544661106],
         [0.324572916993309, 0.256182292006288, 0.906759544661106]])
 
-    car_mask = (mask >= threshold).type(torch.float32)
-    multi_mask = mask * car_mask
-    values, indices = torch.max(multi_mask, dim=0)
-    values_mask = (values != 0).type(torch.int64)
-    multi_mask = (indices + 1) * values_mask
+    # car_mask = (mask >= threshold).type(torch.float32)
+    # multi_mask = mask * car_mask
+    # values, indices = torch.max(multi_mask, dim=0)
+    # values_mask = (values != 0).type(torch.int64)
+    # multi_mask = (indices + 1) * values_mask
+    values, indices = torch.max(mask, dim=0)
 
-    return multi_mask.type(torch.float)
+    return indices.type(torch.float)
 
 def binary_to_multi(mask):
 
@@ -432,7 +433,7 @@ def evaluate_results(dataset, predictions, writer):
                     count += 1
                     iou = 0
 
-                print(iou)
+                # print(iou)
                 seg_box_iou += iou
 
         seg_box_iou /= len(gt.bbox)
@@ -492,8 +493,9 @@ def inference(
     # visualize_output(dataset=dataset, predictions=predictions, writer=writer)
 
     # Compute APs
-    mIoU = evaluate_results(dataset=dataset, predictions=predictions, writer=writer)
-    print(mIoU)
+    # mIoU = evaluate_results(dataset=dataset, predictions=predictions, writer=writer)
+    # print(mIoU)
+    # exit()
 
     if output_folder:
         torch.save(predictions, os.path.join(output_folder, "predictions.pth"))

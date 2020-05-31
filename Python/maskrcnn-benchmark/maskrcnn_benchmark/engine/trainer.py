@@ -146,6 +146,7 @@ def do_train(
             writer.add_scalar('loss_objectness', loss_dict_reduced['loss_objectness'].item(), iteration)
             writer.add_scalar('loss_rpn_box_reg', loss_dict_reduced['loss_rpn_box_reg'].item(), iteration)
             writer.add_scalar('loss_mask', loss_dict_reduced['loss_mask'].item(), iteration)
+            writer.add_scalar('loss_kpt', loss_dict_reduced['loss_kp'].item(), iteration)
             writer.add_scalar('lr', optimizer.param_groups[0]['lr'], iteration)
 
 

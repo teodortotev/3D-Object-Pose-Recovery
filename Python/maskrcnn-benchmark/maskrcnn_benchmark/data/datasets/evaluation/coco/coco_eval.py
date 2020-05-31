@@ -184,8 +184,8 @@ def prepare_for_coco_keypoint(predictions, dataset):
         scores = prediction.get_field('scores').tolist()
         labels = prediction.get_field('labels').tolist()
         keypoints = prediction.get_field('keypoints')
-        keypoints = keypoints.resize((image_width, image_height))
-        keypoints = keypoints.keypoints.view(keypoints.keypoints.shape[0], -1).tolist()
+        keypoints = [keypoint.resize((image_width, image_height)) for keypoint in keypoints]
+        keypoints = [keypoint.keypoints.view(keypoint.keypoints.shape[0], -1).tolist() for keypoint in keypoints]
 
         mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
 

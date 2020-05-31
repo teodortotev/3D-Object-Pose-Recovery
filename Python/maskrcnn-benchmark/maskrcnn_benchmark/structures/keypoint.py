@@ -43,7 +43,7 @@ class Keypoints(object):
                     "Only FLIP_LEFT_RIGHT implemented")
 
         flip_inds = type(self).FLIP_INDS
-        flipped_data = self.keypoints[:, flip_inds]
+        flipped_data = self.keypoints[flip_inds]
         width = self.size[0]
         TO_REMOVE = 1
         # Flip x coordinates
@@ -93,65 +93,91 @@ def _create_flip_indices(names, flip_map):
     flip_indices = [names.index(i) for i in flipped_names]
     return torch.tensor(flip_indices)
 
-
-class PersonKeypoints(Keypoints):
+class CarKeypoints(Keypoints):
     NAMES = [
-        'nose',
-        'left_eye',
-        'right_eye',
-        'left_ear',
-        'right_ear',
-        'left_shoulder',
-        'right_shoulder',
-        'left_elbow',
-        'right_elbow',
-        'left_wrist',
-        'right_wrist',
-        'left_hip',
-        'right_hip',
-        'left_knee',
-        'right_knee',
-        'left_ankle',
-        'right_ankle'
-    ]
+        'left_front_wheel',
+        'left_back_wheel',
+        'right_front_wheel',
+        'right_back_wheel',
+        'upper_left_windshield',
+        'upper_right_windshield',
+        'upper_left_rearwindow',
+        'upper_right_rearwindow',
+        'left_front_light',
+        'right_front_light',
+        'left_back_trunk',
+        'right_back_trunk']
+
     FLIP_MAP = {
-        'left_eye': 'right_eye',
-        'left_ear': 'right_ear',
-        'left_shoulder': 'right_shoulder',
-        'left_elbow': 'right_elbow',
-        'left_wrist': 'right_wrist',
-        'left_hip': 'right_hip',
-        'left_knee': 'right_knee',
-        'left_ankle': 'right_ankle'
+        'left_front_wheel': 'right_front_wheel',
+        'left_back_wheel': 'right_back_wheel',
+        'upper_left_windshield': 'upper_right_windshield',
+        'upper_left_rearwindow': 'upper_right_rearwindow',
+        'left_front_light': 'right_front_light',
+        'left_back_trunk': 'right_back_trunk'
     }
 
 
+# class PersonKeypoints(Keypoints):
+#     NAMES = [
+#         'nose',
+#         'left_eye',
+#         'right_eye',
+#         'left_ear',
+#         'right_ear',
+#         'left_shoulder',
+#         'right_shoulder',
+#         'left_elbow',
+#         'right_elbow',
+#         'left_wrist',
+#         'right_wrist',
+#         'left_hip',
+#         'right_hip',
+#         'left_knee',
+#         'right_knee',
+#         'left_ankle',
+#         'right_ankle'
+#     ]
+#     FLIP_MAP = {
+#         'left_eye': 'right_eye',
+#         'left_ear': 'right_ear',
+#         'left_shoulder': 'right_shoulder',
+#         'left_elbow': 'right_elbow',
+#         'left_wrist': 'right_wrist',
+#         'left_hip': 'right_hip',
+#         'left_knee': 'right_knee',
+#         'left_ankle': 'right_ankle'
+#     }
+
+
 # TODO this doesn't look great
-PersonKeypoints.FLIP_INDS = _create_flip_indices(PersonKeypoints.NAMES, PersonKeypoints.FLIP_MAP)
-def kp_connections(keypoints):
-    kp_lines = [
-        [keypoints.index('left_eye'), keypoints.index('right_eye')],
-        [keypoints.index('left_eye'), keypoints.index('nose')],
-        [keypoints.index('right_eye'), keypoints.index('nose')],
-        [keypoints.index('right_eye'), keypoints.index('right_ear')],
-        [keypoints.index('left_eye'), keypoints.index('left_ear')],
-        [keypoints.index('right_shoulder'), keypoints.index('right_elbow')],
-        [keypoints.index('right_elbow'), keypoints.index('right_wrist')],
-        [keypoints.index('left_shoulder'), keypoints.index('left_elbow')],
-        [keypoints.index('left_elbow'), keypoints.index('left_wrist')],
-        [keypoints.index('right_hip'), keypoints.index('right_knee')],
-        [keypoints.index('right_knee'), keypoints.index('right_ankle')],
-        [keypoints.index('left_hip'), keypoints.index('left_knee')],
-        [keypoints.index('left_knee'), keypoints.index('left_ankle')],
-        [keypoints.index('right_shoulder'), keypoints.index('left_shoulder')],
-        [keypoints.index('right_hip'), keypoints.index('left_hip')],
-    ]
-    return kp_lines
-PersonKeypoints.CONNECTIONS = kp_connections(PersonKeypoints.NAMES)
+# PersonKeypoints.FLIP_INDS = _create_flip_indices(PersonKeypoints.NAMES, PersonKeypoints.FLIP_MAP)
+CarKeypoints.FLIP_INDS = _create_flip_indices(CarKeypoints.NAMES, CarKeypoints.FLIP_MAP)
+# def kp_connections(keypoints):
+#     kp_lines = [
+#         [keypoints.index('left_eye'), keypoints.index('right_eye')],
+#         [keypoints.index('left_eye'), keypoints.index('nose')],
+#         [keypoints.index('right_eye'), keypoints.index('nose')],
+#         [keypoints.index('right_eye'), keypoints.index('right_ear')],
+#         [keypoints.index('left_eye'), keypoints.index('left_ear')],
+#         [keypoints.index('right_shoulder'), keypoints.index('right_elbow')],
+#         [keypoints.index('right_elbow'), keypoints.index('right_wrist')],
+#         [keypoints.index('left_shoulder'), keypoints.index('left_elbow')],
+#         [keypoints.index('left_elbow'), keypoints.index('left_wrist')],
+#         [keypoints.index('right_hip'), keypoints.index('right_knee')],
+#         [keypoints.index('right_knee'), keypoints.index('right_ankle')],
+#         [keypoints.index('left_hip'), keypoints.index('left_knee')],
+#         [keypoints.index('left_knee'), keypoints.index('left_ankle')],
+#         [keypoints.index('right_shoulder'), keypoints.index('left_shoulder')],
+#         [keypoints.index('right_hip'), keypoints.index('left_hip')],
+#     ]
+#     return kp_lines
+# PersonKeypoints.CONNECTIONS = kp_connections(PersonKeypoints.NAMES)
 
 
 # TODO make this nicer, this is a direct translation from C2 (but removing the inner loop)
 def keypoints_to_heat_map(keypoints, rois, heatmap_size):
+    rois = rois.to('cpu')
     if rois.numel() == 0:
         return rois.new().long(), rois.new().long()
     offset_x = rois[:, 0]

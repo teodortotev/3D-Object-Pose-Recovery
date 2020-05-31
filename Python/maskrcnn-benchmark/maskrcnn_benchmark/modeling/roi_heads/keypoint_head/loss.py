@@ -17,7 +17,7 @@ from maskrcnn_benchmark.structures.keypoint import keypoints_to_heat_map
 def project_keypoints_to_heatmap(keypoints, proposals, discretization_size):
     proposals = proposals.convert("xyxy")
     return keypoints_to_heat_map(
-        keypoints.keypoints, proposals.bbox, discretization_size
+        keypoints, proposals.bbox, discretization_size
     )
 
 
@@ -95,16 +95,23 @@ class KeypointRCNNLossComputation(object):
             labels_per_image[neg_inds] = 0
 
             keypoints_per_image = matched_targets.get_field("keypoints")
+
+            kpts = torch.zeros(len(keypoints_per_image), 12, 3)
+            for idx, carkey in enumerate(keypoints_per_image):
+                kpts[idx] = carkey.keypoints.squeeze(1)
+
             within_box = _within_box(
-                keypoints_per_image.keypoints, matched_targets.bbox
+                kpts, matched_targets.bbox.to('cpu')
             )
-            vis_kp = keypoints_per_image.keypoints[..., 2] > 0
+
+            vis_kp = kpts[..., 2] > 0
+
             is_visible = (within_box & vis_kp).sum(1) > 0
 
             labels_per_image[~is_visible] = -1
 
             labels.append(labels_per_image)
-            keypoints.append(keypoints_per_image)
+            keypoints.append(kpts)
 
         return labels, keypoints
 
@@ -164,6 +171,8 @@ class KeypointRCNNLossComputation(object):
 
         N, K, H, W = keypoint_logits.shape
         keypoint_logits = keypoint_logits.view(N * K, H * W)
+
+        keypoint_targets = keypoint_targets.to('cuda')
 
         keypoint_loss = F.cross_entropy(keypoint_logits[valid], keypoint_targets[valid])
         return keypoint_loss

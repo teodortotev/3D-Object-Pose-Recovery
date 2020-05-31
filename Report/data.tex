@@ -1,0 +1,152 @@
+\documentclass[main.tex]{subfiles}
+
+\begin{document}
+
+\section{Data}
+\subsection{Overview}
+The proposed supervised method for performing 3D object pose estimation requires ground truth data for training in order to learn the desired task. In order to minimize the complexity, computation time and information needed for inference, monocular RGB images will be used. Each object instance will have to be labelled appropriately with a 2D bounding box, corresponding 3D model, viewpoint and key-point locations. In addition, part segmentation masks are needed to enable the detection of object parts according to the selected approach. Unfortunately, no dataset that satisfies fully the aforementioned requirements exists. However, PASCAL3D+ \cite{Xiang2014} contains sufficient ground truth data to generate all the necessary inputs and will therefore be used for the purposes of the project.
+\subsection{PASCAL3D+}
+Developed as an extension to PASCAL VOC 2012 \cite{Everingham2014}, PASCAL3D+ enables 3D object detection and pose estimation. It combines images of 12 rigid object categories from PASCAL VOC 2012 and ImageNet \cite{Deng2009} and augments them with 3D annotations, associating each object instance with a corresponding CAD model, viewpoint and anchor points. Human annotators have selected an appropriate CAD model for each object as well as its rough alignment and key-point locations. The final viewpoint has then been determined through minimisation of the re-projection error, using the coarse viewpoint as initialization of the optimisation process. The project will limit itself to the 'car' class in an attempt to reduce the complexity of the problem and test the feasibility of the approach. However, it is believed that the method should easily generalize to other classes although further research on objects with different levels of symmetry has to be done. The so formed single class dataset consists of 952 images from PASCAL VOC 2012 and 5,467 images from ImageNet with valid annotations. The former ones contain multiple instances, occlusions and truncations whereas the latter have only a single, centrally-positioned car. Each detection instance is associated with one of the 10 available CAD models (sub-classes) covering sedan, hatchback, race, mini, SUV, wagon, minivan and truck where some subtypes have more than one possible model (\emph{Figure \ref{fig:cadmodels}}). The CAD models are represented as triangular meshes of vertices and faces. Each model contains between 10 and 12 anchor points which have been used during labelling to refine the viewpoint ground truth. The dataset is built in MATLAB and the majority of the data is available in .mat structures.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{CAD1}
+    \includegraphics[width=0.9\textwidth]{CAD2}
+    \caption{CAD Models - Car \cite{Xiang2014}}
+    \label{fig:cadmodels}
+\end{figure}
+\subsection{CAD Model Labels}
+\label{subsection: cadmodellabels}
+As discussed above, a crucial aspect of the proposed method is the detection of object parts. However, PASCAL3D+ does not provide any part labels and these will have to be generated manually from the available data. Naturally, there are infinitely many ways in which an object can be split in parts. Investigating the effect of different part splits and their semantic meaning could be a research topic on its own. In order to test the proposed method, a simple split that preserves semantic meaning and maintains low complexity is selected. Each CAD model is split into 8 consistent parts. This is achieved through the use of the xy, yz, zx planes passing through the model centre. For each vertex
+\begin{equation}
+sign((\vec{V}-\vec{C}).\hat{n})
+\end{equation}
+is evaluated where $\vec{V}$ is a given vertex from the model, $\vec{C}$ the 3D model centre $[0 \; 0 \; 0]^T$ and $\hat{n}$ is the plane normal unit vector. Since all three planes pass through the model centre this equation allows points on different sides of a plane to be distinguished. Depending on the definition of the normal vector, points on one of the sides will give negative results whereas points on the other side will produce positive values. Without loss of generality, for each vertex a bit is set to 0 if its result is negative and to 1 if the result is positive. Setting a different bit for each of the planes provides 3 bit labels for the model vertices and thus splits them into 8 parts that can be described by combinations of front/back, top/bottom and left/right.
+\subsection{Part Segmentation Masks}
+Once the CAD models are split in parts and labelled, the new information must be converted to a suitable format that can be used as an input to the proposed method. Since parts could be treated as objects themselves, there are two ways in which this could be achieved. The first is to approach the problem as part detection where the ground truth for each part is a bounding box enclosing it. As a result only a crude estimate of the actual part position will be available. The second option is to use segmentation. Each pixel in the image can be classified as either belonging to one of the parts or the background thus forming part segmentation masks. This would be much more useful as it will provide per pixel information and detailed part outlines. In order to use this representation the CAD model labels have to be converted to segmentation masks. This is certainly possible since for each object instance there is a corresponding CAD model with known intrinsic camera matrix and a given viewpoint. The idea is then to render the CAD models through the given viewpoint while conserving the labels in order to generate part segmentation masks.
+\subsubsection{Camera Projection}
+Each viewpoint annotation provides azimuth (a), elevation (e), in-plane rotation (t), distance (d), focal length (f), principal point (px,py) and viewport (v) (\emph{Figure \ref{fig:viewpoint}}). Assuming that the origin of the world coordinate system is at the centre of the CAD model, the origin of the camera coordinate system can be found as follows:
+\begin{equation}
+x = d\cos(e)\sin(a), \;\;\; y = -d\cos(e)\cos(a), \;\;\; z = d\sin(e), \;\;\; C = 
+\begin{bmatrix}
+x & y & z
+\end{bmatrix}^T
+\end{equation}
+\indent Rotating the camera coordinate system by $a$ and $e$ is equivalent to rotating the model by $a'=-a$ and $e'=-(\pi /2 - e)$. Then we can form rotation matrices and stack them as follows:
+\begin{equation}
+R_z = 
+\begin{bmatrix}
+\cos(a') & -\sin(a') & 0 \\
+\sin(a') & \cos(a') & 0 \\
+0 & 0 & 1
+\end{bmatrix},  \; \; \;
+R_x =
+\begin{bmatrix}
+1 & 0 & 0 \\
+0 & \cos(e') & -\sin(e') \\
+0 & \sin(e') & \cos(e') \\
+\end{bmatrix}, \; \; \;
+R = R_x R_z
+\end{equation}
+\indent The camera is then made similar to an affine camera by setting the viewport to $v=3000$ and multiplying by the focal length $f=1$ thus giving the projection  \cite{Xiang2014}:
+\begin{equation}
+P = 
+\begin{bmatrix}
+f*v & 0 & 0 \\
+0 & f*v & 0 \\
+0 & 0 & -1 \\
+\end{bmatrix}
+*
+\begin{bmatrix}
+R & -RC
+\end{bmatrix}, \;\; \;\; 
+x_{2D} = PX_{3D}
+\end{equation}
+\indent The first two dimensions of $x_{2D}$ are divided by the third $z$ to convert it to a homogeneous vector. Next a 2D rotation matrix is applied at an angle $t$, the $y$ dimension is inverted and the principal point coordinates $p_x, p_y$ are added to $x$ and $y$ to transform them to image coordinates. Projecting all vertices following the described method results in a binary object segmentation mask (\emph{Figure \ref{fig:binary}}). 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{viewpoint}
+    \caption{Viewpoint \cite{Xiang2014}}
+    \label{fig:viewpoint}
+\end{figure}
+\begin{figure}[htp]
+\centering
+\includegraphics[width=.4\textwidth]{car_model_binary.png}\hfill
+\includegraphics[width=.3\textwidth]{car_image_binary.png}\hfill
+\includegraphics[width=.3\textwidth]{binary_mask.png}
+\caption{3D Model, 2D Image, Binary Segmentation Mask}
+\label{fig:binary}
+\end{figure}
+\subsubsection{The Barycentric Rasterization Algorithm}
+The final goal is to obtain part segmentation masks and thus the vertex labels need to be conserved during the projection. It is quite likely that multiple vertices will be projected to the same image pixels whereas other projections will be so sparse that some pixels will be left blank. This is a common problem in computer graphics and rendering. To find a solution, it is necessary to determine which surfaces are visible from the given viewpoint and which are occluded. This would be of particular importance when multiple object instances occlude each other and only the one in front has to be rendered. A way to address this issue is to keep track of the depth of each vertex during the projection (z-buffer). The Euclidean distance from the vertex to the camera centre is then stored:
+\begin{equation}
+D_V = \sqrt{(V_x - C_x)^2 + (V_y - C_y)^2 + (V_z - C_z)^2}
+\end{equation}
+\indent In this way if multiple vertices are rendered to the same 2D point the label of the one with the smallest depth i.e. the one closest to the camera will be retained. Although this solves the problem with occlusions, unless the 3D models are very dense or the objects quite far from the camera, the resulting segmentation masks will be sparse and many blank pixels will exist. The barycentric rasterization algorithm provides the necessary improvement \cite{Rast2020}. \\ 
+\indent The 3D models are meshes and as such they have vertices and triangular faces. Projecting the vertices effectively renders the faces as well. Taking the maximum $(x_{max},y_{max})$ and minimum $(x_{min},y_{min})$ pixel coordinates of a given face, a bounding box is constructed around it so that the pixels in the vicinity can be addressed. What is left is to determine whether a given pixel in the bounding box belongs to the triangle. For this purpose the edge function can be used \cite{Rast2020} with notations shown in Figure \ref{fig:edgefunc}:
+\begin{align}
+E_{01}(P) = 0.5 * [(P.x - V_0.x) * (V_1.y - V_0.y) - (P.y - V_0.y) * (V_1.x - V_0.x)] \\
+E_{12}(P) = 0.5 * [(P.x - V_1.x) * (V_2.y - V_1.y) - (P.y - V_1.y) * (V_2.x - V_1.x)] \\
+E_{20}(P) = 0.5 * [(P.x - V_2.x) * (V_0.y - V_2.y) - (P.y - V_2.y) * (V_0.x - V_2.x)]
+\end{align}
+\indent The edge function effectively computes the area of the triangle formed by a pixel and two of the vertices. Its sign conveys the position that pixel relative to the specified edge (\emph{Figure \ref{fig:edgefunc}a}). If vertices are taken in order, the results from all 3 edges can then be used to find if the pixel is inside the projected triangle (\emph{Figure \ref{fig:edgefunc}b}). The areas can be normalized by dividing by the area of the whole triangle thus resulting in the barycentric coordinates of the point. These can then be used as weights $(w_0,w_1,w_2)$ to determine the depth of the point of interest:
+\begin{equation}
+D_P = w_0 * D_{V_{0}} + w_1 * D_{V_{1}} + w_2 * D_{V_{2}}
+\end{equation} 
+\begin{figure}[h]
+\centering
+\begin{subfigure}[c]{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{edge_f}
+\caption{}
+\end{subfigure}%
+\hspace*{4cm}%
+\begin{subfigure}[c]{0.3\textwidth}
+\centering
+\includegraphics[width=\textwidth]{edge_tri}
+\caption{}
+\end{subfigure}%
+\caption{Edge Function \cite{Rast2020}}
+\label{fig:edgefunc}
+\end{figure}
+If the resulting depth is smaller than the currently existing one, the label of the new point is taken, thus effectively rendering only the visible surfaces. Repeating this for all object instances in an image provides an object depth map and part segmentation mask (\emph{Figure \ref{fig:partseg}}). The colour coding used in the visualizations is as shown in \emph{Table \ref{tab:colours}} with depth being relative to each individual map.
+\begin{table}[h]
+\centering
+	\begin{tabular}{| c | c | c | c |}
+		\hline
+		\textbf{Colour} &  & \textbf{Part Label} & \textbf{Part Name} \\
+		\hline
+		\hline
+		Orange & \cellcolor{Orange} & 1 & Front Bottom Right (FBR) \\
+		\hline
+		Light Blue & \cellcolor{LightBlue} & 2 & Front Bottom Left (FBL) \\
+		\hline
+		Brown & \cellcolor{Brown} & 3 & Back Bottom Right (BBR) \\
+		\hline
+		Pink & \cellcolor{Pink} & 4 & Back Bottom Left (BBL) \\
+		\hline
+		Dark Green & \cellcolor{DarkGreen} & 5 & Front Top Right (FTR) \\
+		\hline
+		Dark Blue & \cellcolor{DarkBlue} & 6 & Front Top Left (FTL) \\
+		\hline
+		Light Green & \cellcolor{LightGreen} & 7 & Back Top Right (BTR) \\
+		\hline
+		Turquoise & \cellcolor{Turquoise} & 8 & Back Top Left (BTL) \\
+		\hline
+		White & \cellcolor{white} & - & Distant \\
+		\hline
+		Gray & \cellcolor{gray} & - & Close \\
+		\hline
+	\end{tabular}	
+\caption{Colour Coding for Visualizations}
+\label{tab:colours}
+\end{table}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{seg_mask_one.png}\vfill
+\includegraphics[width=0.85\textwidth]{seg_mask_two.png} \vfill
+\includegraphics[width=0.85\textwidth]{seg_mask_three.png} \vfill
+\includegraphics[width=0.85\textwidth]{seg_mask_four.png}
+\caption{2D Image, Part Segmentation Mask, Depth Map}
+\label{fig:partseg}
+\end{figure}
+\end{document}

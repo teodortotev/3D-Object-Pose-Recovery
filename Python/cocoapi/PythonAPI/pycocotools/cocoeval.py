@@ -262,7 +262,7 @@ class COCOeval:
             x0 = bb[0] - bb[2]; x1 = bb[0] + bb[2] * 2
             y0 = bb[1] - bb[3]; y1 = bb[1] + bb[3] * 2
             for i, dt in enumerate(dts):
-                d = np.array(dt['keypoints'])
+                d = np.array(dt['keypoints']).flatten()
                 xd = d[0::3]; yd = d[1::3]
                 if k1>0:
                     # measure the per-keypoint distance if keypoints visible
@@ -583,7 +583,9 @@ class Params:
         self.areaRng = [[0 ** 2, 1e5 ** 2], [32 ** 2, 96 ** 2], [96 ** 2, 1e5 ** 2]]
         self.areaRngLbl = ['all', 'medium', 'large']
         self.useCats = 1
-        self.kpt_oks_sigmas = np.array([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62,.62, 1.07, 1.07, .87, .87, .89, .89])/10.0
+        # self.kpt_oks_sigmas = np.array([.26, .25, .25, .35, .35, .79, .79, .72, .72, .62,.62, 1.07, 1.07, .87, .87, .89, .89])/10.0
+        self.kpt_oks_sigmas = np.array([.25, .25, .25, .25, .25, .25, .25, .25, .25, .25, .25, .25])/10.0
+
 
     def __init__(self, iouType='segm'):
         if iouType == 'segm' or iouType == 'bbox':
